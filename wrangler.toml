@@ -1,0 +1,4 @@
+name = "ai-assistant-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+account_id = "44a56411ac5c17ce7fe014be5103be8a"

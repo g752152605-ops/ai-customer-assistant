@@ -4,9 +4,9 @@
  */
 
 // ===== Configuration =====
-const API_BASE = 'https://mimimax.cn';
+// API calls go through Cloudflare Worker (hides API key from frontend)
+const WORKER_URL = 'https://ai-customer-assistant.g752152605.workers.dev';
 const MODEL = 'MiniMax-M2.7-highspeed';
-const API_KEY = 'sk-33309df70b18ae1ae29d5ef2807f4f82fc9f8e2a'; // MiniMax API Key
 
 // ===== State =====
 let knowledgeBase = []; // {id, title, content, chunks[]}
@@ -145,14 +145,9 @@ ${message}
 
 ## Message Type: ${typeLabels[type] || 'General Inquiry'}`;
 
-  const response = await fetch(`${API_BASE}/v1/messages`, {
+  const response = await fetch(WORKER_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01',
-      'Authorization': `Bearer ${API_KEY}`
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 600,
