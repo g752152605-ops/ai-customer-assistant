@@ -1,47 +1,87 @@
 /**
  * AI Customer Assistant — Frontend Application
- * Connects to MiniMax API for reply draft generation
+ * With Customer Management & Per-Customer Memory
  */
 
 // ===== Configuration =====
-// API calls go through Cloudflare Worker (hides API key from frontend)
 const WORKER_URL = 'https://ai-customer-assistant.g752152605.workers.dev';
 const MODEL = 'MiniMax-M2.7-highspeed';
+const MAX_CONVERSATION_HISTORY = 10; // Keep last N exchanges per customer
 
 // ===== State =====
-let knowledgeBase = []; // {id, title, content, chunks[]}
+let knowledgeBase = [];
+let customers = [];
+let currentCustomerId = null;
 
 // ===== DOM Elements =====
-const $customerMessage = document.getElementById('customer-message');
-const $messageType = document.getElementById('message-type');
-const $toneSelect = document.getElementById('tone-select');
-const $btnGenerate = document.getElementById('btn-generate');
-const $outputPlaceholder = document.getElementById('output-placeholder');
-const $outputContent = document.getElementById('output-content');
-const $outputLoading = document.getElementById('output-loading');
-const $outputText = document.getElementById('output-text');
-const $btnCopy = document.getElementById('btn-copy');
-const $chunksUsed = document.getElementById('chunks-used');
-const $knowledgePreview = document.getElementById('knowledge-preview');
-const $knowledgeChunks = document.getElementById('knowledge-chunks');
-const $knowledgeCount = document.getElementById('knowledge-count');
-const $modalKnowledge = document.getElementById('modal-knowledge');
-const $btnKnowledge = document.getElementById('btn-knowledge');
-const $modalBackdrop = document.getElementById('modal-backdrop');
-const $modalClose = document.getElementById('modal-close');
-const $knowledgeInput = document.getElementById('knowledge-input');
-const $knowledgeTitle = document.getElementById('knowledge-title');
-const $btnAddKnowledge = document.getElementById('btn-add-knowledge');
-const $statDocs = document.getElementById('stat-docs');
-const $statChunks = document.getElementById('stat-chunks');
-const $statWords = document.getElementById('stat-words');
-const $docEmpty = document.getElementById('doc-empty');
-const $docList = document.getElementById('doc-list');
+const $ = (id) => document.getElementById(id);
+
+// Customer selector
+const $customerSelect = $('customer-select');
+const $btnCustomer = $('btn-customer');
+const $modalCustomer = $('modal-customer');
+const $modalCustomerBackdrop = $('modal-customer-backdrop');
+const $modalCustomerClose = $('modal-customer-close');
+
+// Customer form
+const $customerForm = $('customer-form');
+const $customerName = $('customer-name');
+const $customerCompany = $('customer-company');
+const $customerPosition = $('customer-position');
+const $customerRegion = $('customer-region');
+const $customerSource = $('customer-source');
+const $customerOrderHistory = $('customer-order-history');
+const $customerPaymentRecords = $('customer-payment-records');
+const $customerCreditRating = $('customer-credit-rating');
+const $customerOtherNotes = $('customer-other-notes');
+const $customerFormSubmit = $('customer-form-submit');
+const $customerFormCancel = $('customer-form-cancel');
+
+// Message input
+const $customerMessage = $('customer-message');
+const $messageType = $('message-type');
+const $toneSelect = $('tone-select');
+const $btnGenerate = $('btn-generate');
+
+// Output
+const $outputPlaceholder = $('output-placeholder');
+const $outputContent = $('output-content');
+const $outputLoading = $('output-loading');
+const $outputText = $('output-text');
+const $btnCopy = $('btn-copy');
+const $chunksUsed = $('chunks-used');
+
+// Knowledge
+const $knowledgePreview = $('knowledge-preview');
+const $knowledgeChunks = $('knowledge-chunks');
+const $knowledgeCount = $('knowledge-count');
+const $btnKnowledge = $('btn-knowledge');
+const $modalKnowledge = $('modal-knowledge');
+const $modalBackdrop = $('modal-backdrop');
+const $modalClose = $('modal-close');
+const $knowledgeInput = $('knowledge-input');
+const $knowledgeTitle = $('knowledge-title');
+const $btnAddKnowledge = $('btn-add-knowledge');
+const $statDocs = $('stat-docs');
+const $statChunks = $('stat-chunks');
+const $statWords = $('stat-words');
+const $docEmpty = $('doc-empty');
+const $docList = $('doc-list');
+
+// Customer list in modal
+const $customerList = $('customer-list');
+const $customerEmpty = $('customer-empty');
+const $customerListContainer = $('customer-list-container');
+
+// Conversation display
+const $conversationArea = $('conversation-area');
 
 // ===== Init =====
 function init() {
   loadKnowledgeBase();
+  loadCustomers();
   setupEventListeners();
+  updateCustomerSelector();
   updateKnowledgeStats();
   updateKnowledgePreview();
 }
@@ -50,15 +90,194 @@ function init() {
 function setupEventListeners() {
   $btnGenerate.addEventListener('click', handleGenerate);
   $btnCopy.addEventListener('click', handleCopy);
+  $customerSelect.addEventListener('change', handleCustomerChange);
+  $btnCustomer.addEventListener('click', openCustomerModal);
+  $modalCustomerBackdrop.addEventListener('click', closeCustomerModal);
+  $modalCustomerClose.addEventListener('click', closeCustomerModal);
+  $customerFormSubmit.addEventListener('click', handleSaveCustomer);
+  $customerFormCancel.addEventListener('click', closeCustomerModal);
+  $customerForm.addEventListener('submit', (e) => { e.preventDefault(); handleSaveCustomer(); });
+
   $btnKnowledge.addEventListener('click', openKnowledgeModal);
   $modalBackdrop.addEventListener('click', closeKnowledgeModal);
   $modalClose.addEventListener('click', closeKnowledgeModal);
   $btnAddKnowledge.addEventListener('click', handleAddKnowledge);
 
-  // Enter key on message input
   $customerMessage.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) handleGenerate();
   });
+
+  $customerMessage.addEventListener('input', updateKnowledgePreview);
+}
+
+// ===== Customer Management =====
+function loadCustomers() {
+  try {
+    const stored = localStorage.getItem('ai-customers-v2');
+    customers = stored ? JSON.parse(stored) : [];
+  } catch {
+    customers = [];
+  }
+}
+
+function saveCustomers() {
+  localStorage.setItem('ai-customers-v2', JSON.stringify(customers));
+}
+
+function getCurrentCustomer() {
+  return customers.find(c => c.id === currentCustomerId) || null;
+}
+
+function updateCustomerSelector() {
+  if (!$customerSelect) return;
+  $customerSelect.innerHTML = customers.map(c =>
+    `<option value="${c.id}" ${c.id === currentCustomerId ? 'selected' : ''}>${escapeHtml(c.name)} ${c.company ? `(${escapeHtml(c.company)})` : ''}</option>`
+  ).join('');
+  updateConversationDisplay();
+  updateCustomerForm();
+}
+
+function handleCustomerChange() {
+  currentCustomerId = $customerSelect.value;
+  updateConversationDisplay();
+  updateKnowledgePreview();
+}
+
+function openCustomerModal() { $modalCustomer.classList.remove('hidden'); renderCustomerList(); }
+function closeCustomerModal() { $modalCustomer.classList.add('hidden'); }
+
+function renderCustomerList() {
+  if (customers.length === 0) {
+    $customerEmpty.classList.remove('hidden');
+    $customerListContainer.classList.add('hidden');
+    return;
+  }
+  $customerEmpty.classList.add('hidden');
+  $customerListContainer.classList.remove('hidden');
+  $customerList.innerHTML = customers.map(c => `
+    <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}">
+      <div class="customer-item-info" onclick="selectCustomer('${c.id}')">
+        <div class="customer-item-name">${escapeHtml(c.name)}</div>
+        <div class="customer-item-meta">${escapeHtml(c.company || '未知公司')} · ${escapeHtml(c.position || '未知职位')}</div>
+        <div class="customer-item-credit ${getCreditClass(c.backgroundCheck?.creditRating)}">${escapeHtml(c.backgroundCheck?.creditRating || '未评级')}</div>
+      </div>
+      <div class="customer-item-actions">
+        <button class="btn btn-sm btn-ghost" onclick="editCustomer('${c.id}')">编辑</button>
+        <button class="btn btn-sm btn-ghost" onclick="deleteCustomer('${c.id}')">删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function getCreditClass(rating) {
+  if (!rating) return 'credit-none';
+  const r = rating.toLowerCase();
+  if (r.includes('high') || r.includes('高')) return 'credit-high';
+  if (r.includes('medium') || r.includes('中')) return 'credit-medium';
+  if (r.includes('low') || r.includes('低') || r.includes('risk')) return 'credit-low';
+  return 'credit-none';
+}
+
+window.selectCustomer = function(id) {
+  currentCustomerId = id;
+  $customerSelect.value = id;
+  updateConversationDisplay();
+  updateCustomerForm();
+  closeCustomerModal();
+};
+
+window.editCustomer = function(id) {
+  const c = customers.find(x => x.id === id);
+  if (!c) return;
+  fillCustomerForm(c);
+};
+
+window.deleteCustomer = function(id) {
+  if (!confirm('确定删除该客户？此操作不可恢复。')) return;
+  customers = customers.filter(c => c.id !== id);
+  if (currentCustomerId === id) currentCustomerId = customers[0]?.id || null;
+  saveCustomers();
+  updateCustomerSelector();
+  renderCustomerList();
+  showToast('已删除客户');
+};
+
+function fillCustomerForm(c) {
+  $customerName.value = c.name || '';
+  $customerCompany.value = c.company || '';
+  $customerPosition.value = c.position || '';
+  $customerRegion.value = c.region || '';
+  $customerSource.value = c.source || '';
+  $customerOrderHistory.value = c.backgroundCheck?.orderHistory || '';
+  $customerPaymentRecords.value = c.backgroundCheck?.paymentRecords || '';
+  $customerCreditRating.value = c.backgroundCheck?.creditRating || '';
+  $customerOtherNotes.value = c.backgroundCheck?.otherNotes || '';
+  $customerForm.dataset.editingId = c.id;
+  $customerFormSubmit.textContent = '保存修改';
+  $customerFormCancel.classList.remove('hidden');
+}
+
+function updateCustomerForm() {
+  $customerForm.reset();
+  delete $customerForm.dataset.editingId;
+  $customerFormSubmit.textContent = '添加客户';
+  $customerFormCancel.classList.add('hidden');
+}
+
+function handleSaveCustomer() {
+  const name = $customerName.value.trim();
+  if (!name) { showToast('请输入客户名称'); return; }
+
+  const data = {
+    name,
+    company: $customerCompany.value.trim(),
+    position: $customerPosition.value.trim(),
+    region: $customerRegion.value.trim(),
+    source: $customerSource.value.trim(),
+    backgroundCheck: {
+      orderHistory: $customerOrderHistory.value.trim(),
+      paymentRecords: $customerPaymentRecords.value.trim(),
+      creditRating: $customerCreditRating.value.trim(),
+      otherNotes: $customerOtherNotes.value.trim()
+    }
+  };
+
+  const editingId = $customerForm.dataset.editingId;
+  if (editingId) {
+    const idx = customers.findIndex(c => c.id === editingId);
+    if (idx !== -1) {
+      customers[idx] = { ...customers[idx], ...data };
+      showToast('客户已更新');
+    }
+  } else {
+    const id = Date.now().toString();
+    customers.push({ id, conversations: [], createdAt: new Date().toISOString(), ...data });
+    currentCustomerId = id;
+    showToast(`客户「${name}」已添加`);
+  }
+
+  saveCustomers();
+  updateCustomerSelector();
+  renderCustomerList();
+  updateCustomerForm();
+}
+
+// ===== Conversation Display =====
+function updateConversationDisplay() {
+  if (!$conversationArea) return;
+  const customer = getCurrentCustomer();
+  if (!customer || !customer.conversations || customer.conversations.length === 0) {
+    $conversationArea.innerHTML = '<div class="conv-empty">选择客户后，对话历史将显示在这里</div>';
+    return;
+  }
+  $conversationArea.innerHTML = customer.conversations.map(conv => `
+    <div class="conv-item conv-${conv.role}">
+      <div class="conv-role">${conv.role === 'user' ? '客户' : 'AI'}</div>
+      <div class="conv-content">${escapeHtml(conv.content)}</div>
+      <div class="conv-time">${new Date(conv.timestamp).toLocaleString('zh-CN')}</div>
+    </div>
+  `).join('');
+  $conversationArea.scrollTop = $conversationArea.scrollHeight;
 }
 
 // ===== Generate Reply =====
@@ -70,7 +289,6 @@ async function handleGenerate() {
     return;
   }
 
-  // Show loading
   $outputPlaceholder.classList.add('hidden');
   $outputContent.classList.add('hidden');
   $outputLoading.classList.remove('hidden');
@@ -87,11 +305,28 @@ async function handleGenerate() {
       chunks: retrievedChunks
     });
 
+    // Save to customer conversation history
+    if (currentCustomerId) {
+      const customer = customers.find(c => c.id === currentCustomerId);
+      if (customer) {
+        if (!customer.conversations) customer.conversations = [];
+        customer.conversations.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
+        customer.conversations.push({ role: 'assistant', content: reply, timestamp: new Date().toISOString() });
+        // Keep only last N exchanges
+        if (customer.conversations.length > MAX_CONVERSATION_HISTORY * 2) {
+          customer.conversations = customer.conversations.slice(-MAX_CONVERSATION_HISTORY * 2);
+        }
+        saveCustomers();
+        updateConversationDisplay();
+      }
+    }
+
     $outputLoading.classList.add('hidden');
     $outputContent.classList.remove('hidden');
     $outputText.textContent = reply;
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
 
+    $customerMessage.value = '';
   } catch (err) {
     $outputLoading.classList.add('hidden');
     $outputPlaceholder.classList.remove('hidden');
@@ -104,6 +339,8 @@ async function handleGenerate() {
 
 // ===== Call MiniMax API =====
 async function generateReply({ message, type, tone, chunks }) {
+  const customer = getCurrentCustomer();
+
   const toneLabels = {
     professional: 'Professional and business-like',
     friendly: 'Warm and friendly',
@@ -120,12 +357,39 @@ async function generateReply({ message, type, tone, chunks }) {
     other: 'General Inquiry'
   };
 
+  // Build customer context
+  let customerContext = '';
+  if (customer) {
+    customerContext = `
+## Customer Background (Due Diligence)
+- Name: ${customer.name}
+- Company: ${customer.company || 'Unknown'}
+- Position: ${customer.position || 'Unknown'}
+- Region: ${customer.region || 'Unknown'}
+- Source: ${customer.source || 'Unknown'}
+- Order History: ${customer.backgroundCheck?.orderHistory || 'No records'}
+- Payment Records: ${customer.backgroundCheck?.paymentRecords || 'No records'}
+- Credit Rating: ${customer.backgroundCheck?.creditRating || 'Not rated'}
+- Other Notes: ${customer.backgroundCheck?.otherNotes || 'None'}
+`;
+  }
+
+  // Build conversation history
+  let historyContext = '';
+  if (customer?.conversations?.length > 0) {
+    const history = customer.conversations.slice(-6).map(c =>
+      `${c.role === 'user' ? 'Customer' : 'Employee'}: ${c.content}`
+    ).join('\n');
+    historyContext = `\n## Recent Conversation History\n${history}`;
+  }
+
   const systemPrompt = `You are an AI assistant helping enterprise employees draft professional English email replies to international customers.
 
 ## Your Role
 - Generate a suggested reply DRAFT based on the customer's message and knowledge base
 - The employee will review, modify, and send the reply
 - You are NOT responsible for sending or approving messages
+- Consider the customer's background and due diligence information when generating replies
 
 ## Guidelines
 1. **Tone**: ${toneLabels[tone] || 'Professional'}
@@ -133,6 +397,10 @@ async function generateReply({ message, type, tone, chunks }) {
 3. **Length**: 50-150 words for typical replies
 4. **Structure**: Greeting → Acknowledge → Address → Action/Next Steps → Closing
 5. **Important**: Only use information from the provided knowledge base. Do NOT make up information.
+6. **Due Diligence**: Take the customer's background (credit rating, order history, payment records) into account when generating replies. Adjust tone accordingly.
+
+${customerContext}
+${historyContext}
 
 ## Knowledge Base:
 ${formatChunksForPrompt(chunks)}
@@ -153,9 +421,7 @@ ${message}
       max_tokens: 600,
       temperature: 0.7,
       system: systemPrompt,
-      messages: [
-        { role: 'user', content: userPrompt }
-      ]
+      messages: [{ role: 'user', content: userPrompt }]
     })
   });
 
@@ -171,9 +437,7 @@ ${message}
 // ===== RAG: Retrieve Relevant Chunks =====
 function retrieveChunks(query, topK = 5) {
   if (knowledgeBase.length === 0) return [];
-
   const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-
   const scored = [];
   for (const doc of knowledgeBase) {
     for (const chunk of doc.chunks) {
@@ -182,19 +446,14 @@ function retrieveChunks(query, topK = 5) {
       for (const word of queryWords) {
         if (chunkLower.includes(word)) score++;
       }
-      // Bonus for exact phrase matches
       if (chunkLower.includes(query.toLowerCase())) score += 5;
-      if (score > 0) {
-        scored.push({ docId: doc.id, title: doc.title, chunk, score });
-      }
+      if (score > 0) scored.push({ docId: doc.id, title: doc.title, chunk, score });
     }
   }
-
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK);
 }
 
-// ===== Format Chunks for Prompt =====
 function formatChunksForPrompt(chunks) {
   if (!chunks || chunks.length === 0) return '(No relevant knowledge base entries found)';
   return chunks.map((c, i) => `[${i + 1}] ${c.title}: ${c.chunk}`).join('\n\n');
@@ -221,7 +480,7 @@ function updateKnowledgePreviewChunks(chunks) {
   }
   $knowledgeChunks.innerHTML = chunks.map(c => `
     <div class="chunk-item">
-      <strong>${c.title}</strong>
+      <strong>${escapeHtml(c.title)}</strong>
       <p>${escapeHtml(c.chunk)}</p>
     </div>
   `).join('');
@@ -256,18 +515,11 @@ function saveKnowledgeBase() {
 function handleAddKnowledge() {
   const content = $knowledgeInput.value.trim();
   const title = $knowledgeTitle.value.trim() || `文档 ${knowledgeBase.length + 1}`;
-
-  if (!content) {
-    showToast('请输入知识库内容');
-    return;
-  }
-
+  if (!content) { showToast('请输入知识库内容'); return; }
   const chunks = chunkText(content, 300);
   const id = Date.now().toString();
-
   knowledgeBase.push({ id, title, content, chunks });
   saveKnowledgeBase();
-
   $knowledgeInput.value = '';
   $knowledgeTitle.value = '';
   updateKnowledgeStats();
@@ -279,13 +531,11 @@ function handleAddKnowledge() {
 function chunkText(text, maxChars = 300) {
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 20);
   if (paragraphs.length === 0) return [text.trim()];
-
   const chunks = [];
   for (const para of paragraphs) {
     if (para.length <= maxChars) {
       chunks.push(para.trim());
     } else {
-      // Split long paragraph by sentences
       const sentences = para.match(/[^.!?。！？]+[.!?。！？]+/g) || [para];
       let current = '';
       for (const sent of sentences) {
@@ -359,6 +609,7 @@ function showToast(message) {
 
 // ===== Utilities =====
 function escapeHtml(str) {
+  if (!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
