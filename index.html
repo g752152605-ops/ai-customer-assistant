@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Customer Assistant — 智能客服回复助手</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="header-logo">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="28" height="28" rx="8" fill="#6366F1"/>
+            <path d="M7 9h14M7 14h9M7 19h11" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1>AI Customer Assistant</h1>
+          <p>智能客服回复助手 · Powered by MiniMax</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="btn-knowledge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          知识库
+        </button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- Left: Input -->
+      <section class="panel panel-input">
+        <div class="panel-header">
+          <h2>客户消息</h2>
+          <span class="badge">Input</span>
+        </div>
+        <div class="input-area">
+          <textarea id="customer-message" class="message-input" placeholder="请粘贴客户发来的英文消息，AI 将为您生成回复建议..."></textarea>
+          <div class="input-toolbar">
+            <div class="toolbar-left">
+              <label class="select-label">
+                <span>消息类型</span>
+                <select id="message-type" class="select">
+                  <option value="inquiry">咨询 Inquiry</option>
+                  <option value="complaint">投诉 Complaint</option>
+                  <option value="feedback">反馈 Feedback</option>
+                  <option value="support">技术支持 Support</option>
+                  <option value="order">订单相关 Order</option>
+                  <option value="other">其他 Other</option>
+                </select>
+              </label>
+              <label class="select-label">
+                <span>回复语气</span>
+                <select id="tone-select" class="select">
+                  <option value="professional">专业 Professional</option>
+                  <option value="friendly">友好 Friendly</option>
+                  <option value="formal">正式 Formal</option>
+                  <option value="casual">轻松 Casual</option>
+                </select>
+              </label>
+            </div>
+            <button class="btn btn-primary" id="btn-generate">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              生成回复
+            </button>
+          </div>
+        </div>
+
+        <!-- Knowledge Preview -->
+        <div class="knowledge-preview" id="knowledge-preview">
+          <div class="knowledge-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span>已检索知识库片段</span>
+            <span class="knowledge-count" id="knowledge-count">0 条</span>
+          </div>
+          <div class="knowledge-chunks" id="knowledge-chunks">
+            <p class="knowledge-empty">输入客户消息后，系统将自动检索相关知识库内容</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Output -->
+      <section class="panel panel-output">
+        <div class="panel-header">
+          <h2>AI 回复建议</h2>
+          <span class="badge badge-ai">AI Draft</span>
+        </div>
+        <div class="output-area">
+          <div class="output-placeholder" id="output-placeholder">
+            <div class="placeholder-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <p>AI 生成的回复建议将显示在这里</p>
+            <span>请在左侧输入客户消息并点击「生成回复」</span>
+          </div>
+          <div class="output-content hidden" id="output-content">
+            <div class="output-header">
+              <div class="output-meta">
+                <span class="meta-item" id="chunks-used">0 个知识片段</span>
+              </div>
+              <button class="btn btn-sm btn-copy" id="btn-copy">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                复制
+              </button>
+            </div>
+            <div class="output-text" id="output-text"></div>
+          </div>
+        </div>
+        <div class="output-loading hidden" id="output-loading">
+          <div class="loading-spinner"></div>
+          <p>AI 正在生成回复建议...</p>
+          <span>基于知识库检索 + MiniMax 模型</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>AI 仅供参考 · 员工审核后再发送 &nbsp;|&nbsp; 数据仅在请求期间处理，不持久化存储</p>
+    </footer>
+  </div>
+
+  <!-- Knowledge Modal -->
+  <div class="modal hidden" id="modal-knowledge">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>知识库管理</h3>
+        <button class="btn btn-ghost modal-close" id="modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="knowledge-intro">知识库为 AI 提供上下文参考。请将您的 FAQ、产品手册、回复模板等文档内容发送给 AI助手 来构建知识库。</p>
+        <div class="knowledge-stats" id="knowledge-stats">
+          <div class="stat-card">
+            <span class="stat-num" id="stat-docs">0</span>
+            <span class="stat-label">文档数</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-chunks">0</span>
+            <span class="stat-label">知识片段</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-words">0</span>
+            <span class="stat-label">总词数</span>
+          </div>
+        </div>
+        <div class="knowledge-docs" id="knowledge-docs">
+          <div class="doc-empty" id="doc-empty">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p>暂无知识库文档</p>
+            <span>请将文档内容发送给 AI助手 来构建知识库</span>
+          </div>
+          <div class="doc-list hidden" id="doc-list"></div>
+        </div>
+        <div class="knowledge-add">
+          <h4>添加知识库内容</h4>
+          <textarea id="knowledge-input" class="knowledge-textarea" placeholder="在此粘贴知识库内容（FAQ、回复模板、产品信息等），然后发送给我..."></textarea>
+          <div class="knowledge-add-actions">
+            <input type="text" id="knowledge-title" class="input-title" placeholder="文档标题（如：运费政策）">
+            <button class="btn btn-primary" id="btn-add-knowledge">添加到知识库</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
