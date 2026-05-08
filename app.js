@@ -6,7 +6,7 @@
 // ===== Configuration =====
 const WORKER_URL = 'https://ai-customer-assistant.g752152605.workers.dev';
 const MODEL = 'MiniMax-M2.7-highspeed';
-const MAX_CONVERSATION_HISTORY = 10; // Keep last N exchanges per customer
+const MAX_CONVERSATION_HISTORY = 10;
 
 // ===== State =====
 let knowledgeBase = [];
@@ -16,14 +16,11 @@ let currentCustomerId = null;
 // ===== DOM Elements =====
 const $ = (id) => document.getElementById(id);
 
-// Customer selector
-const $customerSelect = $('customer-select');
-const $btnCustomer = $('btn-customer');
+// Customer form
 const $modalCustomer = $('modal-customer');
 const $modalCustomerBackdrop = $('modal-customer-backdrop');
 const $modalCustomerClose = $('modal-customer-close');
-
-// Customer form
+const $modalCustomerTitle = $('modal-customer-title');
 const $customerForm = $('customer-form');
 const $customerName = $('customer-name');
 const $customerLevel = $('customer-level');
@@ -40,6 +37,17 @@ const $customerCreditRating = $('customer-credit-rating');
 const $customerOtherNotes = $('customer-other-notes');
 const $customerFormSubmit = $('customer-form-submit');
 const $customerFormCancel = $('customer-form-cancel');
+
+// Sidebar
+const $btnAddCustomer = $('btn-add-customer');
+const $customerSearch = $('customer-search');
+const $customerListEl = $('customer-list');
+const $customerEmptyHint = $('customer-empty-hint');
+const $currentCustomerDetail = $('current-customer-detail');
+const $currentCustomerName = $('current-customer-name');
+const $currentCustomerLevel = $('current-customer-level');
+const $currentCustomerInfo = $('current-customer-info');
+const $btnEditCurrent = $('btn-edit-current');
 
 // Message input
 const $customerMessage = $('customer-message');
@@ -72,12 +80,7 @@ const $statWords = $('stat-words');
 const $docEmpty = $('doc-empty');
 const $docList = $('doc-list');
 
-// Customer list in modal
-const $customerList = $('customer-list');
-const $customerEmpty = $('customer-empty');
-const $customerListContainer = $('customer-list-container');
-
-// Conversation display
+// Conversation
 const $conversationArea = $('conversation-area');
 
 // ===== Init =====
@@ -85,22 +88,25 @@ function init() {
   loadKnowledgeBase();
   loadCustomers();
   setupEventListeners();
-  updateCustomerSelector();
+  renderCustomerList();
   updateKnowledgeStats();
   updateKnowledgePreview();
+  updateCurrentCustomerDetail();
 }
 
 // ===== Event Listeners =====
 function setupEventListeners() {
   $btnGenerate.addEventListener('click', handleGenerate);
   $btnCopy.addEventListener('click', handleCopy);
-  $customerSelect.addEventListener('change', handleCustomerChange);
-  $btnCustomer.addEventListener('click', openCustomerModal);
+  $btnAddCustomer.addEventListener('click', () => openCustomerModal());
+  $btnEditCurrent.addEventListener('click', () => {
+    if (currentCustomerId) editCustomer(currentCustomerId);
+  });
   $modalCustomerBackdrop.addEventListener('click', closeCustomerModal);
   $modalCustomerClose.addEventListener('click', closeCustomerModal);
-  $customerFormSubmit.addEventListener('click', handleSaveCustomer);
   $customerFormCancel.addEventListener('click', closeCustomerModal);
   $customerForm.addEventListener('submit', (e) => { e.preventDefault(); handleSaveCustomer(); });
+  $customerSearch.addEventListener('input', handleCustomerSearch);
 
   $btnKnowledge.addEventListener('click', openKnowledgeModal);
   $modalBackdrop.addEventListener('click', closeKnowledgeModal);
@@ -110,7 +116,6 @@ function setupEventListeners() {
   $customerMessage.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) handleGenerate();
   });
-
   $customerMessage.addEventListener('input', updateKnowledgePreview);
 }
 
@@ -132,73 +137,77 @@ function getCurrentCustomer() {
   return customers.find(c => c.id === currentCustomerId) || null;
 }
 
-function updateCustomerSelector() {
-  if (!$customerSelect) return;
-  $customerSelect.innerHTML = customers.map(c =>
-    `<option value="${c.id}" ${c.id === currentCustomerId ? 'selected' : ''}>${escapeHtml(c.name)} ${c.company ? `(${escapeHtml(c.company)})` : ''}</option>`
-  ).join('');
-  updateConversationDisplay();
+function openCustomerModal(editing = false) {
+  $modalCustomerTitle.textContent = editing ? '编辑客户' : '添加新客户';
+  $customerFormSubmit.textContent = editing ? '保存修改' : '添加客户';
+  $modalCustomer.classList.remove('hidden');
+}
+
+function closeCustomerModal() {
+  $modalCustomer.classList.add('hidden');
   updateCustomerForm();
 }
 
-function handleCustomerChange() {
-  currentCustomerId = $customerSelect.value;
-  updateConversationDisplay();
-  updateKnowledgePreview();
+function updateCustomerForm() {
+  $customerForm.reset();
+  delete $customerForm.dataset.editingId;
 }
 
-function openCustomerModal() { $modalCustomer.classList.remove('hidden'); renderCustomerList(); }
-function closeCustomerModal() { $modalCustomer.classList.add('hidden'); }
+function renderCustomerList(filter = '') {
+  const filtered = filter
+    ? customers.filter(c =>
+        c.name.toLowerCase().includes(filter.toLowerCase()) ||
+        (c.company || '').toLowerCase().includes(filter.toLowerCase())
+      )
+    : customers;
 
-function renderCustomerList() {
   if (customers.length === 0) {
-    $customerEmpty.classList.remove('hidden');
-    $customerListContainer.classList.add('hidden');
+    $customerEmptyHint.classList.remove('hidden');
+    $customerListEl.innerHTML = '';
+    $customerListEl.appendChild($customerEmptyHint);
     return;
   }
-  $customerEmpty.classList.add('hidden');
-  $customerListContainer.classList.remove('hidden');
-  $customerList.innerHTML = customers.map(c => `
-    <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}">
-      <div class="customer-item-info" onclick="selectCustomer('${c.id}')">
-        <div class="customer-item-name">${escapeHtml(c.name)} ${c.level ? `<span class="customer-level level-${c.level}">${c.level}</span>` : ''}</div>
+
+  $customerEmptyHint.classList.add('hidden');
+
+  const listHtml = filtered.length === 0
+    ? '<div class="customer-empty-hint"><p>未找到匹配客户</p></div>'
+    : filtered.map(c => `
+      <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}">
+        <div class="customer-item-top">
+          <div class="customer-item-name">
+            ${escapeHtml(c.name)}
+            ${c.level ? `<span class="customer-level level-${c.level}">${c.level}</span>` : ''}
+          </div>
+        </div>
         <div class="customer-item-meta">${escapeHtml(c.company || '未知公司')} · ${escapeHtml(c.type ? getTypeLabel(c.type) : '未分类')}</div>
-        <div class="customer-item-credit ${getCreditClass(c.backgroundCheck?.creditRating)}">${escapeHtml(c.backgroundCheck?.creditRating || '未评级')}</div>
+        <div class="customer-item-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-sm btn-ghost" onclick="editCustomer('${c.id}')">编辑</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteCustomer('${c.id}')">删除</button>
+        </div>
       </div>
-      <div class="customer-item-actions">
-        <button class="btn btn-sm btn-ghost" onclick="editCustomer('${c.id}')">编辑</button>
-        <button class="btn btn-sm btn-ghost" onclick="deleteCustomer('${c.id}')">删除</button>
-      </div>
-    </div>
-  `).join('');
+    `).join('');
+
+  $customerListEl.innerHTML = listHtml;
 }
 
-function getTypeLabel(type) {
-  const labels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
-  return labels[type] || type;
-}
-
-function getCreditClass(rating) {
-  if (!rating) return 'credit-none';
-  const r = rating.toLowerCase();
-  if (r.includes('high') || r.includes('高')) return 'credit-high';
-  if (r.includes('medium') || r.includes('中')) return 'credit-medium';
-  if (r.includes('low') || r.includes('低') || r.includes('risk')) return 'credit-low';
-  return 'credit-none';
+function handleCustomerSearch() {
+  renderCustomerList($customerSearch.value.trim());
 }
 
 window.selectCustomer = function(id) {
   currentCustomerId = id;
-  $customerSelect.value = id;
+  renderCustomerList($customerSearch.value.trim());
+  updateCurrentCustomerDetail();
   updateConversationDisplay();
-  updateCustomerForm();
-  closeCustomerModal();
+  updateKnowledgePreview();
 };
 
 window.editCustomer = function(id) {
   const c = customers.find(x => x.id === id);
   if (!c) return;
   fillCustomerForm(c);
+  openCustomerModal(true);
 };
 
 window.deleteCustomer = function(id) {
@@ -206,8 +215,9 @@ window.deleteCustomer = function(id) {
   customers = customers.filter(c => c.id !== id);
   if (currentCustomerId === id) currentCustomerId = customers[0]?.id || null;
   saveCustomers();
-  updateCustomerSelector();
   renderCustomerList();
+  updateCurrentCustomerDetail();
+  updateConversationDisplay();
   showToast('已删除客户');
 };
 
@@ -226,15 +236,6 @@ function fillCustomerForm(c) {
   $customerCreditRating.value = c.backgroundCheck?.creditRating || '';
   $customerOtherNotes.value = c.backgroundCheck?.otherNotes || '';
   $customerForm.dataset.editingId = c.id;
-  $customerFormSubmit.textContent = '保存修改';
-  $customerFormCancel.classList.remove('hidden');
-}
-
-function updateCustomerForm() {
-  $customerForm.reset();
-  delete $customerForm.dataset.editingId;
-  $customerFormSubmit.textContent = '添加客户';
-  $customerFormCancel.classList.add('hidden');
 }
 
 function handleSaveCustomer() {
@@ -274,9 +275,40 @@ function handleSaveCustomer() {
   }
 
   saveCustomers();
-  updateCustomerSelector();
   renderCustomerList();
+  updateCurrentCustomerDetail();
+  updateConversationDisplay();
   updateCustomerForm();
+  closeCustomerModal();
+}
+
+function updateCurrentCustomerDetail() {
+  const c = getCurrentCustomer();
+  if (!c) {
+    $currentCustomerDetail.classList.remove('visible');
+    return;
+  }
+
+  $currentCustomerDetail.classList.add('visible');
+  $currentCustomerName.textContent = c.name;
+
+  if (c.level) {
+    $currentCustomerLevel.textContent = c.level;
+    $currentCustomerLevel.className = `current-customer-level customer-level level-${c.level}`;
+  } else {
+    $currentCustomerLevel.textContent = '未评级';
+    $currentCustomerLevel.className = 'current-customer-level';
+  }
+
+  const typeLabels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
+  const parts = [
+    c.company && `公司: ${c.company}`,
+    c.type && `类型: ${typeLabels[c.type] || c.type}`,
+    c.region && `地区: ${c.region}`,
+    c.backgroundCheck?.creditRating && `信用: ${c.backgroundCheck.creditRating}`
+  ].filter(Boolean);
+
+  $currentCustomerInfo.textContent = parts.join(' | ') || '暂无详细信息';
 }
 
 // ===== Conversation Display =====
@@ -288,7 +320,7 @@ function updateConversationDisplay() {
     return;
   }
   $conversationArea.innerHTML = customer.conversations.map(conv => `
-    <div class="conv-item conv-${conv.role}">
+    <div class="conv-item conv-${conv.role === 'user' ? 'user' : 'assistant'}">
       <div class="conv-role">${conv.role === 'user' ? '客户' : 'AI'}</div>
       <div class="conv-content">${escapeHtml(conv.content)}</div>
       <div class="conv-time">${new Date(conv.timestamp).toLocaleString('zh-CN')}</div>
@@ -303,6 +335,11 @@ async function handleGenerate() {
   if (!message) {
     showToast('请先输入客户消息');
     $customerMessage.focus();
+    return;
+  }
+
+  if (!currentCustomerId) {
+    showToast('请先选择客户');
     return;
   }
 
@@ -323,27 +360,24 @@ async function handleGenerate() {
     });
 
     // Save to customer conversation history
-    if (currentCustomerId) {
-      const customer = customers.find(c => c.id === currentCustomerId);
-      if (customer) {
-        if (!customer.conversations) customer.conversations = [];
-        customer.conversations.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
-        customer.conversations.push({ role: 'assistant', content: reply, timestamp: new Date().toISOString() });
-        // Keep only last N exchanges
-        if (customer.conversations.length > MAX_CONVERSATION_HISTORY * 2) {
-          customer.conversations = customer.conversations.slice(-MAX_CONVERSATION_HISTORY * 2);
-        }
-        saveCustomers();
-        updateConversationDisplay();
+    const customer = getCurrentCustomer();
+    if (customer) {
+      if (!customer.conversations) customer.conversations = [];
+      customer.conversations.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
+      customer.conversations.push({ role: 'assistant', content: reply, timestamp: new Date().toISOString() });
+      if (customer.conversations.length > MAX_CONVERSATION_HISTORY * 2) {
+        customer.conversations = customer.conversations.slice(-MAX_CONVERSATION_HISTORY * 2);
       }
+      saveCustomers();
+      updateConversationDisplay();
     }
 
     $outputLoading.classList.add('hidden');
     $outputContent.classList.remove('hidden');
     $outputText.textContent = reply;
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
-
     $customerMessage.value = '';
+
   } catch (err) {
     $outputLoading.classList.add('hidden');
     $outputPlaceholder.classList.remove('hidden');
@@ -374,17 +408,17 @@ async function generateReply({ message, type, tone, chunks }) {
     other: 'General Inquiry'
   };
 
-  // Build customer context
+  const typeLabelMap = { wholesaler: 'Wholesaler (批发商)', factory: 'Factory (工厂)', trader: 'Trader (贸易商)', distributor: 'Distributor (经销商)', agent: 'Agent (代理商)', other: 'Other (其他)' };
+
   let customerContext = '';
   if (customer) {
-    const typeLabels = { wholesaler: 'Wholesaler (批发商)', factory: 'Factory (工厂)', trader: 'Trader (贸易商)', distributor: 'Distributor (经销商)', agent: 'Agent (代理商)', other: 'Other (其他)' };
     customerContext = `
 ## Customer Background (Due Diligence)
 - Name: ${customer.name}
-- Level: ${customer.level ? `${customer.level}` : 'Not rated'}
+- Level: ${customer.level || 'Not rated'}
 - Company: ${customer.company || 'Unknown'}
 - Company Website: ${customer.website || 'Not provided'}
-- Type: ${typeLabels[customer.type] || customer.type || 'Unknown'}
+- Type: ${typeLabelMap[customer.type] || customer.type || 'Unknown'}
 - Buyer Platform Preference: ${customer.platform || 'Unknown'}
 - Position: ${customer.position || 'Unknown'}
 - Region: ${customer.region || 'Unknown'}
@@ -396,7 +430,6 @@ async function generateReply({ message, type, tone, chunks }) {
 `;
   }
 
-  // Build conversation history
   let historyContext = '';
   if (customer?.conversations?.length > 0) {
     const history = customer.conversations.slice(-6).map(c =>
@@ -419,7 +452,7 @@ async function generateReply({ message, type, tone, chunks }) {
 3. **Length**: 50-150 words for typical replies
 4. **Structure**: Greeting → Acknowledge → Address → Action/Next Steps → Closing
 5. **Important**: Only use information from the provided knowledge base. Do NOT make up information.
-6. **Due Diligence**: Take the customer's background (credit rating, order history, payment records) into account when generating replies. Adjust tone accordingly.
+6. **Due Diligence**: Take the customer's level, credit rating, order history into account when generating replies.
 
 ${customerContext}
 ${historyContext}
@@ -456,7 +489,7 @@ ${message}
   return data.content?.[0]?.text || '生成回复为空，请稍后重试。';
 }
 
-// ===== RAG: Retrieve Relevant Chunks =====
+// ===== RAG =====
 function retrieveChunks(query, topK = 5) {
   if (knowledgeBase.length === 0) return [];
   const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -481,11 +514,16 @@ function formatChunksForPrompt(chunks) {
   return chunks.map((c, i) => `[${i + 1}] ${c.title}: ${c.chunk}`).join('\n\n');
 }
 
+function getTypeLabel(type) {
+  const labels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
+  return labels[type] || type;
+}
+
 // ===== Update Knowledge Preview =====
 function updateKnowledgePreview() {
   const message = $customerMessage.value.trim();
   if (!message) {
-    $knowledgeChunks.innerHTML = '<p class="knowledge-empty">输入客户消息后，系统将自动检索相关知识库内容</p>';
+    $knowledgeChunks.innerHTML = '<p class="knowledge-empty">输入消息后自动检索相关知识库内容</p>';
     $knowledgeCount.textContent = '0 条';
     return;
   }
@@ -508,7 +546,7 @@ function updateKnowledgePreviewChunks(chunks) {
   `).join('');
 }
 
-// ===== Copy to Clipboard =====
+// ===== Copy =====
 async function handleCopy() {
   const text = $outputText.textContent;
   if (!text) return;
@@ -590,15 +628,15 @@ function updateDocList() {
   $docList.classList.remove('hidden');
   $docList.innerHTML = knowledgeBase.map(doc => `
     <div class="doc-item">
-      <svg class="doc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      <svg class="doc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
       </svg>
       <div class="doc-info">
         <div class="doc-title">${escapeHtml(doc.title)}</div>
-        <div class="doc-preview">${escapeHtml(doc.content.substring(0, 120))}...</div>
+        <div class="doc-preview">${escapeHtml(doc.content.substring(0, 100))}...</div>
       </div>
       <button class="doc-delete" onclick="deleteDoc('${doc.id}')" title="删除">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
         </svg>
       </button>
@@ -618,7 +656,7 @@ window.deleteDoc = function(id) {
 function openKnowledgeModal() { $modalKnowledge.classList.remove('hidden'); updateDocList(); }
 function closeKnowledgeModal() { $modalKnowledge.classList.add('hidden'); }
 
-// ===== Toast Notification =====
+// ===== Toast =====
 function showToast(message) {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();

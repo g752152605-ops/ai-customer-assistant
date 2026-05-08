@@ -10,166 +10,194 @@
 </head>
 <body>
   <div class="app">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-brand">
-        <div class="header-logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- Left Sidebar: Customer Panel -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
             <rect width="28" height="28" rx="8" fill="#6366F1"/>
             <path d="M7 9h14M7 14h9M7 19h11" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
           </svg>
+          <span>客户列表</span>
         </div>
-        <div class="header-text">
-          <h1>AI Customer Assistant</h1>
-          <p>智能客服回复助手 · Powered by MiniMax</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <!-- Customer Selector -->
-        <div class="customer-selector">
-          <select id="customer-select" class="select">
-            <option value="">— 选择客户 —</option>
-          </select>
-          <button class="btn btn-ghost btn-sm" id="btn-customer" title="管理客户">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </button>
-        </div>
-        <button class="btn btn-ghost" id="btn-knowledge">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        <button class="btn btn-primary btn-sm" id="btn-add-customer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          知识库
+          新客户
         </button>
       </div>
-    </header>
 
-    <!-- Main -->
-    <main class="main">
-      <!-- Left: Input + Conversation -->
-      <section class="panel panel-left">
-        <div class="panel-tabs">
-          <button class="tab active" data-tab="input">撰写回复</button>
-          <button class="tab" data-tab="history">对话历史</button>
+      <!-- Search -->
+      <div class="sidebar-search">
+        <input type="text" id="customer-search" class="search-input" placeholder="搜索客户...">
+      </div>
+
+      <!-- Customer List -->
+      <div class="customer-list" id="customer-list">
+        <div class="customer-empty-hint" id="customer-empty-hint">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+          <p>暂无客户</p>
+          <span>点击上方「添加客户」开始</span>
         </div>
+      </div>
 
-        <!-- Input Tab -->
-        <div class="tab-content active" id="tab-input">
-          <div class="panel-header">
-            <h2>客户消息</h2>
-            <span class="badge">Input</span>
+      <!-- Current Customer Detail (when selected) -->
+      <div class="current-customer" id="current-customer-detail">
+        <div class="current-customer-header">
+          <div class="current-customer-name" id="current-customer-name">—</div>
+          <div class="current-customer-level" id="current-customer-level"></div>
+        </div>
+        <div class="current-customer-info" id="current-customer-info"></div>
+        <button class="btn btn-ghost btn-sm btn-edit-current" id="btn-edit-current">编辑客户</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="content-header">
+        <div class="content-header-left">
+          <h1>AI Customer Assistant</h1>
+          <span class="header-subtitle">Powered by MiniMax</span>
+        </div>
+        <div class="content-header-actions">
+          <button class="btn btn-ghost" id="btn-knowledge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            知识库
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Area -->
+      <div class="chat-area">
+        <!-- Left: Input -->
+        <section class="panel panel-input">
+          <div class="panel-tabs">
+            <button class="tab active" data-tab="compose">撰写回复</button>
+            <button class="tab" data-tab="history">对话历史</button>
           </div>
-          <div class="input-area">
-            <textarea id="customer-message" class="message-input" placeholder="请粘贴客户发来的英文消息，AI 将为您生成回复建议..."></textarea>
-            <div class="input-toolbar">
-              <div class="toolbar-left">
-                <label class="select-label">
-                  <span>消息类型</span>
-                  <select id="message-type" class="select">
-                    <option value="inquiry">咨询 Inquiry</option>
-                    <option value="complaint">投诉 Complaint</option>
-                    <option value="feedback">反馈 Feedback</option>
-                    <option value="support">技术支持 Support</option>
-                    <option value="order">订单相关 Order</option>
-                    <option value="other">其他 Other</option>
-                  </select>
-                </label>
-                <label class="select-label">
-                  <span>回复语气</span>
-                  <select id="tone-select" class="select">
-                    <option value="professional">专业 Professional</option>
-                    <option value="friendly">友好 Friendly</option>
-                    <option value="formal">正式 Formal</option>
-                    <option value="casual">轻松 Casual</option>
-                  </select>
-                </label>
+
+          <div class="tab-content active" id="tab-compose">
+            <div class="panel-header">
+              <h2>客户消息</h2>
+              <span class="badge">Input</span>
+            </div>
+            <div class="input-area">
+              <textarea id="customer-message" class="message-input" placeholder="请粘贴客户发来的英文消息，AI 将结合客户背调信息生成最合适的回复建议..."></textarea>
+              <div class="input-toolbar">
+                <div class="toolbar-left">
+                  <label class="select-label">
+                    <span>类型</span>
+                    <select id="message-type" class="select">
+                      <option value="inquiry">咨询 Inquiry</option>
+                      <option value="complaint">投诉 Complaint</option>
+                      <option value="feedback">反馈 Feedback</option>
+                      <option value="support">技术支持 Support</option>
+                      <option value="order">订单相关 Order</option>
+                      <option value="other">其他 Other</option>
+                    </select>
+                  </label>
+                  <label class="select-label">
+                    <span>语气</span>
+                    <select id="tone-select" class="select">
+                      <option value="professional">专业 Professional</option>
+                      <option value="friendly">友好 Friendly</option>
+                      <option value="formal">正式 Formal</option>
+                      <option value="casual">轻松 Casual</option>
+                    </select>
+                  </label>
+                </div>
+                <button class="btn btn-primary" id="btn-generate">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  生成回复
+                </button>
               </div>
-              <button class="btn btn-primary" id="btn-generate">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </div>
+
+            <!-- Knowledge Preview -->
+            <div class="knowledge-preview" id="knowledge-preview">
+              <div class="knowledge-header">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                 </svg>
-                生成回复
-              </button>
-            </div>
-          </div>
-
-          <!-- Knowledge Preview -->
-          <div class="knowledge-preview" id="knowledge-preview">
-            <div class="knowledge-header">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-              </svg>
-              <span>已检索知识库片段</span>
-              <span class="knowledge-count" id="knowledge-count">0 条</span>
-            </div>
-            <div class="knowledge-chunks" id="knowledge-chunks">
-              <p class="knowledge-empty">输入客户消息后，系统将自动检索相关知识库内容</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- History Tab -->
-        <div class="tab-content" id="tab-history">
-          <div class="panel-header">
-            <h2>对话历史</h2>
-          </div>
-          <div class="conversation-area" id="conversation-area">
-            <div class="conv-empty">选择客户后，对话历史将显示在这里</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right: Output -->
-      <section class="panel panel-output">
-        <div class="panel-header">
-          <h2>AI 回复建议</h2>
-          <span class="badge badge-ai">AI Draft</span>
-        </div>
-        <div class="output-area">
-          <div class="output-placeholder" id="output-placeholder">
-            <div class="placeholder-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <p>AI 生成的回复建议将显示在这里</p>
-            <span>请选择客户 → 输入消息 → 点击「生成回复」</span>
-          </div>
-          <div class="output-content hidden" id="output-content">
-            <div class="output-header">
-              <div class="output-meta">
-                <span class="meta-item" id="chunks-used">0 个知识片段</span>
+                <span>知识库检索</span>
+                <span class="knowledge-count" id="knowledge-count">0 条</span>
               </div>
-              <button class="btn btn-sm btn-copy" id="btn-copy">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                </svg>
-                复制
-              </button>
+              <div class="knowledge-chunks" id="knowledge-chunks">
+                <p class="knowledge-empty">输入消息后自动检索相关知识库内容</p>
+              </div>
             </div>
-            <div class="output-text" id="output-text"></div>
           </div>
-        </div>
-        <div class="output-loading hidden" id="output-loading">
-          <div class="loading-spinner"></div>
-          <p>AI 正在生成回复建议...</p>
-          <span>结合客户背调信息 + 知识库检索</span>
-        </div>
-      </section>
+
+          <div class="tab-content" id="tab-history">
+            <div class="panel-header">
+              <h2>对话历史</h2>
+            </div>
+            <div class="conversation-area" id="conversation-area">
+              <div class="conv-empty">选择客户后，对话历史将显示在这里</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right: Output -->
+        <section class="panel panel-output">
+          <div class="panel-header">
+            <h2>AI 回复建议</h2>
+            <span class="badge badge-ai">AI Draft</span>
+          </div>
+          <div class="output-area">
+            <div class="output-placeholder" id="output-placeholder">
+              <div class="placeholder-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <p>AI 生成的回复建议将显示在这里</p>
+              <span>选择客户 → 输入消息 → 点击「生成回复」</span>
+            </div>
+            <div class="output-content hidden" id="output-content">
+              <div class="output-header">
+                <div class="output-meta">
+                  <span class="meta-item" id="chunks-used">0 个知识片段</span>
+                </div>
+                <button class="btn btn-sm btn-copy" id="btn-copy">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  复制
+                </button>
+              </div>
+              <div class="output-text" id="output-text"></div>
+            </div>
+          </div>
+          <div class="output-loading hidden" id="output-loading">
+            <div class="loading-spinner"></div>
+            <p>AI 正在生成回复建议...</p>
+            <span>结合客户背调信息 + 知识库检索</span>
+          </div>
+        </section>
+      </div>
     </main>
-
-    <footer class="footer">
-      <p>AI 仅供参考 · 员工审核后再发送 &nbsp;|&nbsp; 每个客户的对话历史独立存储，互不干扰</p>
-    </footer>
   </div>
 
-  <!-- Customer Management Modal -->
+  <footer class="footer">
+    <p>AI 仅供参考 · 员工审核后再发送 &nbsp;|&nbsp; 每个客户的对话历史独立存储，互不干扰</p>
+  </footer>
+
+  <!-- Customer Form Modal -->
   <div class="modal hidden" id="modal-customer">
     <div class="modal-backdrop" id="modal-customer-backdrop"></div>
     <div class="modal-content modal-wide">
       <div class="modal-header">
-        <h3>客户管理</h3>
+        <h3 id="modal-customer-title">添加新客户</h3>
         <button class="btn btn-ghost modal-close" id="modal-customer-close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -177,118 +205,98 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="customer-layout">
-          <!-- Left: Customer List -->
-          <div class="customer-list-panel">
-            <div class="customer-list-container" id="customer-list-container">
-              <div class="customer-empty" id="customer-empty">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                <p>暂无客户</p>
-                <span>添加第一个客户开始</span>
-              </div>
-              <div class="customer-list" id="customer-list"></div>
-            </div>
+        <form id="customer-form" class="customer-form">
+          <div class="form-row form-row-2">
+            <label class="form-label">
+              <span>客户名称 *</span>
+              <input type="text" id="customer-name" class="form-input" placeholder="如：张先生 / John Smith" required>
+            </label>
+            <label class="form-label">
+              <span>客户等级</span>
+              <select id="customer-level" class="select">
+                <option value="">未评级</option>
+                <option value="L5">L5（战略级）</option>
+                <option value="L4">L4（重点大客户）</option>
+                <option value="L3">L3（大客户）</option>
+                <option value="L2">L2（成长型）</option>
+                <option value="L1">L1（初识/潜力）</option>
+                <option value="L0">L0（低价值/高风险）</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row form-row-2">
+            <label class="form-label">
+              <span>公司名称</span>
+              <input type="text" id="customer-company" class="form-input" placeholder="ABC Corp Ltd">
+            </label>
+            <label class="form-label">
+              <span>公司官网</span>
+              <input type="text" id="customer-website" class="form-input" placeholder="https://www.example.com">
+            </label>
+          </div>
+          <div class="form-row form-row-3">
+            <label class="form-label">
+              <span>客户类型</span>
+              <select id="customer-type" class="select">
+                <option value="">未分类</option>
+                <option value="wholesaler">批发商 Wholesaler</option>
+                <option value="factory">工厂 Factory</option>
+                <option value="trader">贸易商 Trader</option>
+                <option value="distributor">经销商 Distributor</option>
+                <option value="agent">代理商 Agent</option>
+                <option value="other">其他 Other</option>
+              </select>
+            </label>
+            <label class="form-label">
+              <span>买家站内偏好</span>
+              <input type="text" id="customer-platform" class="form-input" placeholder="Alibaba / 独立站">
+            </label>
+            <label class="form-label">
+              <span>地区</span>
+              <input type="text" id="customer-region" class="form-input" placeholder="Germany">
+            </label>
+          </div>
+          <div class="form-row form-row-2">
+            <label class="form-label">
+              <span>职位</span>
+              <input type="text" id="customer-position" class="form-input" placeholder="Purchasing Manager">
+            </label>
+            <label class="form-label">
+              <span>客户来源</span>
+              <input type="text" id="customer-source" class="form-input" placeholder="Alibaba / 展会 / 推荐">
+            </label>
           </div>
 
-          <!-- Right: Customer Form -->
-          <div class="customer-form-panel">
-            <h4 id="customer-form-title">添加新客户</h4>
-            <form id="customer-form" class="customer-form">
-              <div class="form-row form-row-2">
-                <label class="form-label">
-                  <span>客户名称 *</span>
-                  <input type="text" id="customer-name" class="form-input" placeholder="如：张先生 / John Smith" required>
-                </label>
-                <label class="form-label">
-                  <span>客户等级</span>
-                  <select id="customer-level" class="select">
-                    <option value="">未评级</option>
-                    <option value="L5">L5（战略级）</option>
-                    <option value="L4">L4（重点大客户）</option>
-                    <option value="L3">L3（大客户）</option>
-                    <option value="L2">L2（成长型）</option>
-                    <option value="L1">L1（初识/潜力）</option>
-                    <option value="L0">L0（低价值/高风险）</option>
-                  </select>
-                </label>
-              </div>
-              <div class="form-row form-row-2">
-                <label class="form-label">
-                  <span>公司名称</span>
-                  <input type="text" id="customer-company" class="form-input" placeholder="ABC Corp Ltd">
-                </label>
-                <label class="form-label">
-                  <span>公司官网</span>
-                  <input type="text" id="customer-website" class="form-input" placeholder="https://www.example.com">
-                </label>
-              </div>
-              <div class="form-row form-row-3">
-                <label class="form-label">
-                  <span>客户类型</span>
-                  <select id="customer-type" class="select">
-                    <option value="">未分类</option>
-                    <option value="wholesaler">批发商 Wholesaler</option>
-                    <option value="factory">工厂 Factory</option>
-                    <option value="trader">贸易商 Trader</option>
-                    <option value="distributor">经销商 Distributor</option>
-                    <option value="agent">代理商 Agent</option>
-                    <option value="other">其他 Other</option>
-                  </select>
-                </label>
-                <label class="form-label">
-                  <span>买家站内偏好</span>
-                  <input type="text" id="customer-platform" class="form-input" placeholder="如：Alibaba / Made-in-China / 独立站">
-                </label>
-                <label class="form-label">
-                  <span>地区</span>
-                  <input type="text" id="customer-region" class="form-input" placeholder="Germany">
-                </label>
-              </div>
-              <div class="form-row form-row-2">
-                <label class="form-label">
-                  <span>职位</span>
-                  <input type="text" id="customer-position" class="form-input" placeholder="Purchasing Manager">
-                </label>
-                <label class="form-label">
-                  <span>客户来源</span>
-                  <input type="text" id="customer-source" class="form-input" placeholder="Alibaba / 展会 / 推荐">
-                </label>
-              </div>
+          <div class="form-divider">背调信息</div>
 
-              <div class="form-divider">背调信息</div>
-
-              <div class="form-row">
-                <label class="form-label">
-                  <span>历史订单</span>
-                  <textarea id="customer-order-history" class="form-textarea" placeholder="例：2024年订购 $50,000 货物，准时付款"></textarea>
-                </label>
-              </div>
-              <div class="form-row form-row-2">
-                <label class="form-label">
-                  <span>付款记录</span>
-                  <textarea id="customer-payment-records" class="form-textarea" placeholder="例：历史付款及时，无逾期记录" style="height:60px"></textarea>
-                </label>
-                <label class="form-label">
-                  <span>信用评级</span>
-                  <input type="text" id="customer-credit-rating" class="form-input" placeholder="例：High Risk / Medium / Low Risk">
-                </label>
-              </div>
-              <div class="form-row">
-                <label class="form-label">
-                  <span>其他备注</span>
-                  <textarea id="customer-other-notes" class="form-textarea" placeholder="其他需要备注的信息..."></textarea>
-                </label>
-              </div>
-
-              <div class="form-actions">
-                <button type="button" class="btn btn-ghost hidden" id="customer-form-cancel">取消</button>
-                <button type="submit" class="btn btn-primary" id="customer-form-submit">添加客户</button>
-              </div>
-            </form>
+          <div class="form-row">
+            <label class="form-label">
+              <span>历史订单</span>
+              <textarea id="customer-order-history" class="form-textarea" placeholder="例：2024年订购 $50,000 货物，准时付款"></textarea>
+            </label>
           </div>
-        </div>
+          <div class="form-row form-row-2">
+            <label class="form-label">
+              <span>付款记录</span>
+              <textarea id="customer-payment-records" class="form-textarea" placeholder="例：历史付款及时，无逾期记录" style="height:60px"></textarea>
+            </label>
+            <label class="form-label">
+              <span>信用评级</span>
+              <input type="text" id="customer-credit-rating" class="form-input" placeholder="例：High Risk / Medium / Low Risk">
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="form-label">
+              <span>其他备注</span>
+              <textarea id="customer-other-notes" class="form-textarea" placeholder="其他需要备注的信息..."></textarea>
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="customer-form-cancel">取消</button>
+            <button type="submit" class="btn btn-primary" id="customer-form-submit">添加客户</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -324,10 +332,9 @@
         <div class="knowledge-docs" id="knowledge-docs">
           <div class="doc-empty" id="doc-empty">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             </svg>
             <p>暂无知识库文档</p>
-            <span>请将文档内容发送到这里来构建知识库</span>
           </div>
           <div class="doc-list hidden" id="doc-list"></div>
         </div>
