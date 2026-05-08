@@ -196,10 +196,20 @@
           <div class="customer-form-panel">
             <h4 id="customer-form-title">添加新客户</h4>
             <form id="customer-form" class="customer-form">
-              <div class="form-row">
+              <div class="form-row form-row-2">
                 <label class="form-label">
                   <span>客户名称 *</span>
                   <input type="text" id="customer-name" class="form-input" placeholder="如：张先生 / John Smith" required>
+                </label>
+                <label class="form-label">
+                  <span>客户等级</span>
+                  <select id="customer-level" class="select">
+                    <option value="">未评级</option>
+                    <option value="A">A级（重点客户）</option>
+                    <option value="B">B级（普通客户）</option>
+                    <option value="C">C级（潜在客户）</option>
+                    <option value="D">D级（低价值/风险客户）</option>
+                  </select>
                 </label>
               </div>
               <div class="form-row form-row-2">
@@ -208,14 +218,36 @@
                   <input type="text" id="customer-company" class="form-input" placeholder="ABC Corp Ltd">
                 </label>
                 <label class="form-label">
-                  <span>职位</span>
-                  <input type="text" id="customer-position" class="form-input" placeholder="Purchasing Manager">
+                  <span>公司官网</span>
+                  <input type="text" id="customer-website" class="form-input" placeholder="https://www.example.com">
+                </label>
+              </div>
+              <div class="form-row form-row-3">
+                <label class="form-label">
+                  <span>客户类型</span>
+                  <select id="customer-type" class="select">
+                    <option value="">未分类</option>
+                    <option value="wholesaler">批发商 Wholesaler</option>
+                    <option value="factory">工厂 Factory</option>
+                    <option value="trader">贸易商 Trader</option>
+                    <option value="distributor">经销商 Distributor</option>
+                    <option value="agent">代理商 Agent</option>
+                    <option value="other">其他 Other</option>
+                  </select>
+                </label>
+                <label class="form-label">
+                  <span>买家站内偏好</span>
+                  <input type="text" id="customer-platform" class="form-input" placeholder="如：Alibaba / Made-in-China / 独立站">
+                </label>
+                <label class="form-label">
+                  <span>地区</span>
+                  <input type="text" id="customer-region" class="form-input" placeholder="Germany">
                 </label>
               </div>
               <div class="form-row form-row-2">
                 <label class="form-label">
-                  <span>地区</span>
-                  <input type="text" id="customer-region" class="form-input" placeholder="Germany">
+                  <span>职位</span>
+                  <input type="text" id="customer-position" class="form-input" placeholder="Purchasing Manager">
                 </label>
                 <label class="form-label">
                   <span>客户来源</span>

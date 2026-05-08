@@ -26,7 +26,11 @@ const $modalCustomerClose = $('modal-customer-close');
 // Customer form
 const $customerForm = $('customer-form');
 const $customerName = $('customer-name');
+const $customerLevel = $('customer-level');
 const $customerCompany = $('customer-company');
+const $customerWebsite = $('customer-website');
+const $customerType = $('customer-type');
+const $customerPlatform = $('customer-platform');
 const $customerPosition = $('customer-position');
 const $customerRegion = $('customer-region');
 const $customerSource = $('customer-source');
@@ -157,8 +161,8 @@ function renderCustomerList() {
   $customerList.innerHTML = customers.map(c => `
     <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}">
       <div class="customer-item-info" onclick="selectCustomer('${c.id}')">
-        <div class="customer-item-name">${escapeHtml(c.name)}</div>
-        <div class="customer-item-meta">${escapeHtml(c.company || '未知公司')} · ${escapeHtml(c.position || '未知职位')}</div>
+        <div class="customer-item-name">${escapeHtml(c.name)} ${c.level ? `<span class="customer-level level-${c.level}">${c.level}级</span>` : ''}</div>
+        <div class="customer-item-meta">${escapeHtml(c.company || '未知公司')} · ${escapeHtml(c.type ? getTypeLabel(c.type) : '未分类')}</div>
         <div class="customer-item-credit ${getCreditClass(c.backgroundCheck?.creditRating)}">${escapeHtml(c.backgroundCheck?.creditRating || '未评级')}</div>
       </div>
       <div class="customer-item-actions">
@@ -167,6 +171,11 @@ function renderCustomerList() {
       </div>
     </div>
   `).join('');
+}
+
+function getTypeLabel(type) {
+  const labels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
+  return labels[type] || type;
 }
 
 function getCreditClass(rating) {
@@ -204,7 +213,11 @@ window.deleteCustomer = function(id) {
 
 function fillCustomerForm(c) {
   $customerName.value = c.name || '';
+  $customerLevel.value = c.level || '';
   $customerCompany.value = c.company || '';
+  $customerWebsite.value = c.website || '';
+  $customerType.value = c.type || '';
+  $customerPlatform.value = c.platform || '';
   $customerPosition.value = c.position || '';
   $customerRegion.value = c.region || '';
   $customerSource.value = c.source || '';
@@ -230,7 +243,11 @@ function handleSaveCustomer() {
 
   const data = {
     name,
+    level: $customerLevel.value,
     company: $customerCompany.value.trim(),
+    website: $customerWebsite.value.trim(),
+    type: $customerType.value,
+    platform: $customerPlatform.value.trim(),
     position: $customerPosition.value.trim(),
     region: $customerRegion.value.trim(),
     source: $customerSource.value.trim(),
@@ -360,10 +377,15 @@ async function generateReply({ message, type, tone, chunks }) {
   // Build customer context
   let customerContext = '';
   if (customer) {
+    const typeLabels = { wholesaler: 'Wholesaler (批发商)', factory: 'Factory (工厂)', trader: 'Trader (贸易商)', distributor: 'Distributor (经销商)', agent: 'Agent (代理商)', other: 'Other (其他)' };
     customerContext = `
 ## Customer Background (Due Diligence)
 - Name: ${customer.name}
+- Level: ${customer.level ? `Level ${customer.level}` : 'Not rated'}
 - Company: ${customer.company || 'Unknown'}
+- Company Website: ${customer.website || 'Not provided'}
+- Type: ${typeLabels[customer.type] || customer.type || 'Unknown'}
+- Buyer Platform Preference: ${customer.platform || 'Unknown'}
 - Position: ${customer.position || 'Unknown'}
 - Region: ${customer.region || 'Unknown'}
 - Source: ${customer.source || 'Unknown'}
