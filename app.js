@@ -161,7 +161,7 @@ function renderCustomerList() {
   $customerList.innerHTML = customers.map(c => `
     <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}">
       <div class="customer-item-info" onclick="selectCustomer('${c.id}')">
-        <div class="customer-item-name">${escapeHtml(c.name)} ${c.level ? `<span class="customer-level level-${c.level}">${c.level}级</span>` : ''}</div>
+        <div class="customer-item-name">${escapeHtml(c.name)} ${c.level ? `<span class="customer-level level-${c.level}">${c.level}</span>` : ''}</div>
         <div class="customer-item-meta">${escapeHtml(c.company || '未知公司')} · ${escapeHtml(c.type ? getTypeLabel(c.type) : '未分类')}</div>
         <div class="customer-item-credit ${getCreditClass(c.backgroundCheck?.creditRating)}">${escapeHtml(c.backgroundCheck?.creditRating || '未评级')}</div>
       </div>
@@ -381,7 +381,7 @@ async function generateReply({ message, type, tone, chunks }) {
     customerContext = `
 ## Customer Background (Due Diligence)
 - Name: ${customer.name}
-- Level: ${customer.level ? `Level ${customer.level}` : 'Not rated'}
+- Level: ${customer.level ? `${customer.level}` : 'Not rated'}
 - Company: ${customer.company || 'Unknown'}
 - Company Website: ${customer.website || 'Not provided'}
 - Type: ${typeLabels[customer.type] || customer.type || 'Unknown'}

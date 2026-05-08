@@ -489,10 +489,12 @@ body {
   padding: 2px 7px;
   border-radius: 20px;
 }
-.level-A { background: #DCFCE7; color: #16A34A; }
-.level-B { background: #DBEAFE; color: #2563EB; }
-.level-C { background: #FEF3C7; color: #D97706; }
-.level-D { background: #FEE2E2; color: #DC2626; }
+.level-L5 { background: #DCFCE7; color: #16A34A; }
+.level-L4 { background: #DBEAFE; color: #2563EB; }
+.level-L3 { background: #FEF3C7; color: #D97706; }
+.level-L2 { background: #E0E7FF; color: #4338CA; }
+.level-L1 { background: #F3E8FF; color: #7C3AED; }
+.level-L0 { background: #FEE2E2; color: #DC2626; }
 
 .customer-item-actions { display: flex; gap: 4px; }
 
