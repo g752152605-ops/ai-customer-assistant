@@ -531,15 +531,6 @@ ${customerContext}
 ${summaryContext}
 ${historyContext}`;
 
-## KNOWLEDGE BASE (Use ONLY this information, cite specifics)
-${formatChunksForPrompt(chunks)}
-
-## OUTPUT FORMAT
-Plain professional email reply text only. No headers, no bullet points, no explanations.
-Target: 50-150 words. Sound like a real person wrote it.
-
-**Tone to use: ${toneLabels[tone] || 'Professional and business-like'}**`;
-
   const userPrompt = `Customer message: "${message}"
 
 Message type: ${typeLabels[type] || 'General Inquiry'}
