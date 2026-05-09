@@ -634,7 +634,7 @@ async function handleCopy() {
 // ===== Knowledge Base Management =====
 async function loadKnowledgeBase() {
   try {
-    const response = await fetch(`${WORKER_URL}/kb`, {
+    const response = await fetch(`/api/kb`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -658,7 +658,7 @@ function handleAddKnowledge() {
   $btnAddKnowledge.disabled = true;
   $btnAddKnowledge.textContent = '添加中...';
 
-  fetch(`${WORKER_URL}/kb`, {
+  fetch(`/api/kb`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, content, chunks })
@@ -743,7 +743,7 @@ function updateDocList() {
 }
 
 window.deleteDoc = function(id) {
-  fetch(`${WORKER_URL}/kb/${id}`, {
+  fetch(`/api/kb/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' }
   })
