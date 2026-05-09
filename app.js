@@ -743,8 +743,8 @@ function updateDocList() {
 }
 
 window.deleteDoc = function(id) {
-  fetch(`/api/kb/${id}`, {
-    method: 'DELETE',
+  fetch(`/api/kb/${id}?_method=delete`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   })
     .then(res => res.json())

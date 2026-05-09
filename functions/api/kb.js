@@ -96,8 +96,8 @@ export async function onRequest(context) {
     }
   }
 
-  // DELETE /api/kb/:id
-  if (request.method === 'DELETE') {
+  // DELETE /api/kb/:id - use POST with ?_method=DELETE
+  if (request.method === 'POST' && url.searchParams.get('_method') === 'delete') {
     const pathParts = url.pathname.split('/').filter(p => p);
     const id = pathParts[pathParts.length - 1];
 
