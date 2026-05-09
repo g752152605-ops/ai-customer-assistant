@@ -102,8 +102,8 @@ const $btnAddSummary = $('btn-add-summary');
 const $btnImportHistory = $('btn-import-history');
 
 // ===== Init =====
-function init() {
-  loadKnowledgeBase();
+async function init() {
+  await loadKnowledgeBase();
   loadCustomers();
   setupEventListeners();
   renderCustomerList();
@@ -632,17 +632,21 @@ async function handleCopy() {
 }
 
 // ===== Knowledge Base Management =====
-function loadKnowledgeBase() {
+async function loadKnowledgeBase() {
   try {
-    const stored = localStorage.getItem('ai-kb-v1');
-    knowledgeBase = stored ? JSON.parse(stored) : [];
+    const response = await fetch(`${WORKER_URL}/kb`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    if (data.success && data.data) {
+      knowledgeBase = data.data;
+    } else {
+      knowledgeBase = [];
+    }
   } catch {
     knowledgeBase = [];
   }
-}
-
-function saveKnowledgeBase() {
-  localStorage.setItem('ai-kb-v1', JSON.stringify(knowledgeBase));
 }
 
 function handleAddKnowledge() {
@@ -650,15 +654,36 @@ function handleAddKnowledge() {
   const title = $knowledgeTitle.value.trim() || `文档 ${knowledgeBase.length + 1}`;
   if (!content) { showToast('请输入知识库内容'); return; }
   const chunks = chunkText(content, 300);
-  const id = Date.now().toString();
-  knowledgeBase.push({ id, title, content, chunks });
-  saveKnowledgeBase();
-  $knowledgeInput.value = '';
-  $knowledgeTitle.value = '';
-  updateKnowledgeStats();
-  updateKnowledgePreview();
-  updateDocList();
-  showToast(`已添加「${title}」，生成 ${chunks.length} 个知识片段`);
+
+  $btnAddKnowledge.disabled = true;
+  $btnAddKnowledge.textContent = '添加中...';
+
+  fetch(`${WORKER_URL}/kb`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content, chunks })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        knowledgeBase.push(data.data);
+        $knowledgeInput.value = '';
+        $knowledgeTitle.value = '';
+        updateKnowledgeStats();
+        updateKnowledgePreview();
+        updateDocList();
+        showToast(`已添加「${title}」，生成 ${chunks.length} 个知识片段`);
+      } else {
+        showToast('添加失败: ' + (data.error || '未知错误'));
+      }
+    })
+    .catch(err => {
+      showToast('添加失败: ' + err.message);
+    })
+    .finally(() => {
+      $btnAddKnowledge.disabled = false;
+      $btnAddKnowledge.textContent = '添加到知识库';
+    });
 }
 
 function chunkText(text, maxChars = 300) {
@@ -718,15 +743,31 @@ function updateDocList() {
 }
 
 window.deleteDoc = function(id) {
-  knowledgeBase = knowledgeBase.filter(d => d.id !== id);
-  saveKnowledgeBase();
-  updateKnowledgeStats();
-  updateKnowledgePreview();
-  updateDocList();
-  showToast('已删除文档');
+  fetch(`${WORKER_URL}/kb/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        knowledgeBase = knowledgeBase.filter(d => d.id !== id);
+        updateKnowledgeStats();
+        updateKnowledgePreview();
+        updateDocList();
+        showToast('已删除文档');
+      } else {
+        showToast('删除失败');
+      }
+    })
+    .catch(() => {
+      showToast('删除失败');
+    });
 };
 
-function openKnowledgeModal() { $modalKnowledge.classList.remove('hidden'); updateDocList(); }
+function openKnowledgeModal() {
+  $modalKnowledge.classList.remove('hidden');
+  loadKnowledgeBase().then(updateDocList).then(updateKnowledgeStats);
+}
 function closeKnowledgeModal() { $modalKnowledge.classList.add('hidden'); }
 
 // ===== Toast =====
