@@ -4,7 +4,7 @@
  */
 
 // ===== Configuration =====
-const WORKER_URL = 'https://ai-customer-assistant.g752152605.workers.dev';
+const WORKER_URL = 'https://ai-customer-assistant.pages.dev/api/chat';
 const MODEL = 'MiniMax-M2.7-highspeed';
 const MAX_CONVERSATION_HISTORY = 10;
 
@@ -224,7 +224,7 @@ function renderCustomerList(filter = '') {
   const listHtml = filtered.length === 0
     ? '<div class="customer-empty-hint"><p>未找到匹配客户</p></div>'
     : filtered.map(c => `
-      <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}">
+      <div class="customer-item ${c.id === currentCustomerId ? 'active' : ''}" data-id="${c.id}" onclick="selectCustomer('${c.id}')">
         <div class="customer-item-top">
           <div class="customer-item-name">
             ${escapeHtml(c.name)}
@@ -510,36 +510,42 @@ async function generateReply({ message, type, tone, chunks }) {
     }
   }
 
-  const systemPrompt = `You are an AI assistant helping enterprise employees draft professional English email replies to international customers.
+  // Build knowledge context
+  const kbContext = chunks.length > 0
+    ? `Use these product facts in your reply:\n${formatChunksForPrompt(chunks)}\n`
+    : 'No product catalog available - be helpful anyway.';
 
-## Your Role
-- Generate a suggested reply DRAFT based on the customer's message and knowledge base
-- The employee will review, modify, and send the reply
-- You are NOT responsible for sending or approving messages
-- Consider the customer's background and due diligence information when generating replies
+  const systemPrompt = `You help employees draft professional B2B sales emails.
 
-## Guidelines
-1. **Tone**: ${toneLabels[tone] || 'Professional'}
-2. **Language**: English (the customer's language)
-3. **Length**: 50-150 words for typical replies
-4. **Structure**: Greeting → Acknowledge → Address → Action/Next Steps → Closing
-5. **Important**: Only use information from the provided knowledge base. Do NOT make up information.
-6. **Due Diligence**: Take the customer's level, credit rating, order history into account when generating replies.
+Write a professional business email reply for this customer inquiry.
 
+${kbContext}
+
+Style: Professional B2B sales - like reading an email from a trusted supplier.
+Length: 80-120 words.
+Format: Plain text email only, no bullet points, no markdown.
+Closing: Always include "Best regards,"
+
+Customer context:
 ${customerContext}
 ${summaryContext}
-${historyContext}
+${historyContext}`;
 
-## Knowledge Base:
+## KNOWLEDGE BASE (Use ONLY this information, cite specifics)
 ${formatChunksForPrompt(chunks)}
 
-## Output Format
-Provide ONLY the suggested reply text. No explanations, no bullet points, no headers. Just the professional email reply.`;
+## OUTPUT FORMAT
+Plain professional email reply text only. No headers, no bullet points, no explanations.
+Target: 50-150 words. Sound like a real person wrote it.
 
-  const userPrompt = `## Customer Message
-${message}
+**Tone to use: ${toneLabels[tone] || 'Professional and business-like'}**`;
 
-## Message Type: ${typeLabels[type] || 'General Inquiry'}`;
+  const userPrompt = `Customer message: "${message}"
+
+Message type: ${typeLabels[type] || 'General Inquiry'}
+Tone: ${toneLabels[tone] || 'Professional'}
+
+Write the reply now.`;
 
   const response = await fetch(WORKER_URL, {
     method: 'POST',
@@ -559,7 +565,63 @@ ${message}
   }
 
   const data = await response.json();
-  return data.content?.[0]?.text || '生成回复为空，请稍后重试。';
+  // Handle MiniMax API response format where content is array with type: "text" or "thinking"
+  let textContent = Array.isArray(data.content)
+    ? data.content.find(c => c.type === 'text')?.text || ''
+    : data.content?.[0]?.text || '';
+
+  // Clean up AI-sounding phrases
+  textContent = cleanAIPhrases(textContent);
+
+  return textContent || '生成回复为空，请稍后重试。';
+}
+
+// ===== Clean AI-sounding phrases =====
+function cleanAIPhrases(text) {
+  if (!text) return text;
+
+  let cleaned = text;
+
+  // Remove markdown headers (# Header and ## Header -> just the text)
+  cleaned = cleaned.replace(/^#+\s*([^\n]+)/gm, '$1');
+
+  // Remove table formatting | col | col | -> just text
+  cleaned = cleaned.replace(/^\|.*\|$/gm, '');
+
+  // Remove bold/italic markers
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1');
+  cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+
+  // Remove numbered/bulleted list markers
+  cleaned = cleaned.replace(/^\d+\.\s*/gm, '');
+  cleaned = cleaned.replace(/^[-•*]\s*/gm, '');
+
+  // Patterns to remove
+  const removePatterns = [
+    /I(?:'m| am) an AI(?: assistant)?/gi,
+    /As an AI(?: language model)?/gi,
+    /I(?:'m| am) an AI(?: language model)?/gi,
+    /I should clarify that I'm an AI/gi,
+    /I don't have access to.*(?:catalog|product database|orders)/gi,
+    /Contact sales directly at \[.*?\]/gi,
+    /\[.*?\]/g,
+  ];
+
+  for (const pattern of removePatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  // Fix awkward openings
+  cleaned = cleaned.replace(/^Hello! Thank you for your interest\./im, 'Thank you for your interest in our glassware products.');
+
+  // Remove multiple newlines
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+  // Remove leading/trailing whitespace per line and filter empty lines
+  cleaned = cleaned.split('\n').map(line => line.trim()).filter(line => line).join('\n');
+
+  return cleaned.trim();
 }
 
 // ===== RAG =====
@@ -743,9 +805,10 @@ function updateDocList() {
 }
 
 window.deleteDoc = function(id) {
-  fetch(`/api/kb/${id}?_method=delete`, {
+  fetch(`/api/kb?action=delete&id=${encodeURIComponent(id)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}'
   })
     .then(res => res.json())
     .then(data => {
@@ -874,7 +937,9 @@ async function handleImageUpload() {
     }
 
     const data = await response.json();
-    let text = data.content?.[0]?.text || '';
+    let text = Array.isArray(data.content)
+      ? data.content.find(c => c.type === 'text')?.text || ''
+      : data.content?.[0]?.text || '';
 
     // Clean up the response - extract JSON if wrapped in markdown
     const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -988,7 +1053,9 @@ ${text}`;
     }
 
     const data = await response.json();
-    let responseText = data.content?.[0]?.text || '';
+    let responseText = Array.isArray(data.content)
+      ? data.content.find(c => c.type === 'text')?.text || ''
+      : data.content?.[0]?.text || '';
 
     // Extract JSON
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);

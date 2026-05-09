@@ -54,8 +54,82 @@ export async function onRequest(context) {
     }
   }
 
-  // POST /api/kb - Add new entry
+  // POST /api/kb/delete?id=xxx - Delete entry (query param to avoid path routing issues)
+  if (request.method === 'POST' && url.pathname === '/api/kb/delete') {
+    const id = url.searchParams.get('id');
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Missing ID' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    try {
+      const sql = `DELETE FROM knowledge_base WHERE id = ?`;
+      const response = await fetch(d1ApiBase + '/query', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${d1Token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sql, params: [id] })
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.errors?.[0]?.message || 'Database error');
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // POST /api/kb - Add new entry OR delete (via ?action=delete&id=xxx)
   if (request.method === 'POST') {
+    const action = url.searchParams.get('action');
+
+    // Handle delete action
+    if (action === 'delete') {
+      const id = url.searchParams.get('id');
+      if (!id) {
+        return new Response(JSON.stringify({ error: 'Missing ID' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      try {
+        const sql = `DELETE FROM knowledge_base WHERE id = ?`;
+        const response = await fetch(d1ApiBase + '/query', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${d1Token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sql, params: [id] })
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.errors?.[0]?.message || 'Database error');
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Handle add new entry
     try {
       const body = await request.json();
       const { title, content, chunks } = body;
@@ -87,43 +161,6 @@ export async function onRequest(context) {
       }
 
       return new Response(JSON.stringify({ success: true, data: { id, title, content, chunks, created_at } }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-  }
-
-  // DELETE /api/kb/:id - use POST with ?_method=DELETE
-  if (request.method === 'POST' && url.searchParams.get('_method') === 'delete') {
-    const pathParts = url.pathname.split('/').filter(p => p);
-    const id = pathParts[pathParts.length - 1];
-
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing ID' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    try {
-      const sql = `DELETE FROM knowledge_base WHERE id = ?`;
-      const response = await fetch(d1ApiBase + '/query', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${d1Token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ sql, params: [id] })
-      });
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.errors?.[0]?.message || 'Database error');
-      }
-
-      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (err) {
