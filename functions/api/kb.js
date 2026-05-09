@@ -22,7 +22,7 @@ export async function onRequest(context) {
   const d1ApiBase = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}`;
 
   if (!d1Token) {
-    return new Response(JSON.stringify({ error: 'D1 token not configured' }), {
+    return new Response(JSON.stringify({ error: 'D1 token not configured', token: d1Token }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
@@ -30,8 +30,13 @@ export async function onRequest(context) {
   // GET /api/kb - List all
   if (request.method === 'GET') {
     try {
-      const response = await fetch(`${d1ApiBase}/query?limit=1000`, {
-        headers: { 'Authorization': `Bearer ${d1Token}` }
+      const response = await fetch(d1ApiBase + '/query', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${d1Token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sql: 'SELECT * FROM knowledge_base', params: [] })
       });
       const data = await response.json();
       const items = data.result?.[0]?.results || [];
