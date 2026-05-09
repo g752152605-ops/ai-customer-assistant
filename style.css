@@ -661,6 +661,71 @@ body {
 .input-title:focus { outline: none; border-color: var(--primary); }
 
 /* ===========================
+   Import Modal
+   =========================== */
+.import-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.import-tabs .tab { flex: 1; padding: 8px 12px; }
+
+.import-tab-content { display: none; flex-direction: column; gap: 10px; }
+.import-tab-content.active { display: flex; }
+
+.import-tip { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+.import-image-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 160px;
+  position: relative;
+}
+.import-image-area:hover { border-color: var(--primary); background: var(--primary-light); }
+.import-image-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-muted); }
+.import-image-placeholder p { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.import-image-placeholder span { font-size: 11px; }
+.import-image-preview { max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); }
+.import-image-preview.hidden { display: none; }
+
+.import-image-actions, .import-text-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.import-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+  transition: border-color 0.15s;
+  background: var(--surface);
+}
+.import-textarea:focus { outline: none; border-color: var(--primary); }
+.import-textarea::placeholder { color: var(--text-muted); }
+
+.import-result {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.import-result.success { background: #F0FDF4; border: 1px solid var(--success); color: var(--success); }
+.import-result.error { background: #FEF2F2; border: 1px solid var(--danger); color: var(--danger); }
+.import-result.info { background: var(--primary-light); border: 1px solid var(--primary); color: var(--primary); }
+
+/* Summary Conv Item */
+.conv-summary { align-self: flex-start; background: #FFFBEB; border: 1px solid #F59E0B; max-width: 90%; }
+.conv-summary .conv-role { color: #D97706; }
+
+/* ===========================
    Utilities
    =========================== */
 .hidden { display: none !important; }

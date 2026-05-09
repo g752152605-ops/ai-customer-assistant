@@ -83,6 +83,24 @@ const $docList = $('doc-list');
 // Conversation
 const $conversationArea = $('conversation-area');
 
+// Import modal
+const $modalImport = $('modal-import');
+const $modalImportBackdrop = $('modal-import-backdrop');
+const $modalImportClose = $('modal-import-close');
+const $importImageArea = $('import-image-area');
+const $importImageInput = $('import-image-input');
+const $importImagePlaceholder = $('import-image-placeholder');
+const $importImagePreview = $('import-image-preview');
+const $btnClearImage = $('btn-clear-image');
+const $btnUploadImage = $('btn-upload-image');
+const $importImageResult = $('import-image-result');
+const $importTextInput = $('import-text-input');
+const $btnParseText = $('btn-parse-text');
+const $importTextResult = $('import-text-result');
+const $importSummaryInput = $('import-summary-input');
+const $btnAddSummary = $('btn-add-summary');
+const $btnImportHistory = $('btn-import-history');
+
 // ===== Init =====
 function init() {
   loadKnowledgeBase();
@@ -117,6 +135,39 @@ function setupEventListeners() {
     if (e.key === 'Enter' && e.ctrlKey) handleGenerate();
   });
   $customerMessage.addEventListener('input', updateKnowledgePreview);
+
+  // Import modal
+  $btnImportHistory.addEventListener('click', openImportModal);
+  $modalImportBackdrop.addEventListener('click', closeImportModal);
+  $modalImportClose.addEventListener('click', closeImportModal);
+
+  // Import tab switching
+  document.querySelectorAll('[data-import-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('[data-import-tab]').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.import-tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('import-tab-' + tab.dataset.importTab).classList.add('active');
+    });
+  });
+
+  // Image upload
+  $importImageArea.addEventListener('click', () => $importImageInput.click());
+  $importImageInput.addEventListener('change', handleImageSelect);
+  $btnClearImage.addEventListener('click', clearImportImage);
+  $btnUploadImage.addEventListener('click', handleImageUpload);
+
+  // Text paste
+  $importTextInput.addEventListener('input', () => {
+    $btnParseText.disabled = !$importTextInput.value.trim();
+  });
+  $btnParseText.addEventListener('click', handleTextParse);
+
+  // Summary
+  $importSummaryInput.addEventListener('input', () => {
+    $btnAddSummary.disabled = !$importSummaryInput.value.trim();
+  });
+  $btnAddSummary.addEventListener('click', handleSummaryAdd);
 }
 
 // ===== Customer Management =====
@@ -319,13 +370,22 @@ function updateConversationDisplay() {
     $conversationArea.innerHTML = '<div class="conv-empty">选择客户后，对话历史将显示在这里</div>';
     return;
   }
-  $conversationArea.innerHTML = customer.conversations.map(conv => `
+  $conversationArea.innerHTML = customer.conversations.map(conv => {
+    if (conv.role === 'summary') {
+      return `
+      <div class="conv-item conv-summary">
+        <div class="conv-role">对话摘要</div>
+        <div class="conv-content">${escapeHtml(conv.content)}</div>
+        <div class="conv-time">${new Date(conv.timestamp).toLocaleString('zh-CN')}</div>
+      </div>`;
+    }
+    return `
     <div class="conv-item conv-${conv.role === 'user' ? 'user' : 'assistant'}">
-      <div class="conv-role">${conv.role === 'user' ? '客户' : 'AI'}</div>
+      <div class="conv-role">${conv.role === 'user' ? '客户' : '员工'}</div>
       <div class="conv-content">${escapeHtml(conv.content)}</div>
       <div class="conv-time">${new Date(conv.timestamp).toLocaleString('zh-CN')}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   $conversationArea.scrollTop = $conversationArea.scrollHeight;
 }
 
@@ -431,11 +491,23 @@ async function generateReply({ message, type, tone, chunks }) {
   }
 
   let historyContext = '';
+  let summaryContext = '';
+
   if (customer?.conversations?.length > 0) {
-    const history = customer.conversations.slice(-6).map(c =>
-      `${c.role === 'user' ? 'Customer' : 'Employee'}: ${c.content}`
-    ).join('\n');
-    historyContext = `\n## Recent Conversation History\n${history}`;
+    // Separate summaries from regular conversation
+    const summaries = customer.conversations.filter(c => c.role === 'summary');
+    const regularHistory = customer.conversations.filter(c => c.role !== 'summary').slice(-6);
+
+    if (summaries.length > 0) {
+      summaryContext = `\n## Conversation Background Summary\n${summaries.map(s => s.content).join('\n\n')}`;
+    }
+
+    if (regularHistory.length > 0) {
+      const history = regularHistory.map(c =>
+        `${c.role === 'user' ? 'Customer' : 'Employee'}: ${c.content}`
+      ).join('\n');
+      historyContext = `\n## Recent Conversation History\n${history}`;
+    }
   }
 
   const systemPrompt = `You are an AI assistant helping enterprise employees draft professional English email replies to international customers.
@@ -455,6 +527,7 @@ async function generateReply({ message, type, tone, chunks }) {
 6. **Due Diligence**: Take the customer's level, credit rating, order history into account when generating replies.
 
 ${customerContext}
+${summaryContext}
 ${historyContext}
 
 ## Knowledge Base:
@@ -665,6 +738,299 @@ function showToast(message) {
   toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
+}
+
+// ===== Import History =====
+function openImportModal() {
+  if (!currentCustomerId) {
+    showToast('请先选择客户');
+    return;
+  }
+  $modalImport.classList.remove('hidden');
+  clearImportForm();
+}
+
+function closeImportModal() {
+  $modalImport.classList.add('hidden');
+}
+
+function clearImportForm() {
+  clearImportImage();
+  $importTextInput.value = '';
+  $importTextResult.classList.add('hidden');
+  $importSummaryInput.value = '';
+  $btnParseText.disabled = true;
+  $btnAddSummary.disabled = true;
+}
+
+function clearImportImage() {
+  $importImageInput.value = '';
+  $importImagePreview.src = '';
+  $importImagePreview.classList.add('hidden');
+  $importImagePlaceholder.classList.remove('hidden');
+  $btnUploadImage.disabled = true;
+  $importImageResult.classList.add('hidden');
+}
+
+let selectedImageFile = null;
+
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件');
+    return;
+  }
+
+  selectedImageFile = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    $importImagePreview.src = e.target.result;
+    $importImagePreview.classList.remove('hidden');
+    $importImagePlaceholder.classList.add('hidden');
+    $btnUploadImage.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function handleImageUpload() {
+  if (!selectedImageFile || !currentCustomerId) return;
+
+  $btnUploadImage.disabled = true;
+  $btnUploadImage.textContent = '识别中...';
+  $importImageResult.classList.add('hidden');
+
+  try {
+    const base64 = await fileToBase64(selectedImageFile);
+    const dataUrl = `data:${selectedImageFile.type};base64,${base64}`;
+
+    const prompt = `请识别这张图片中的对话内容，返回JSON数组格式：[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]。
+- role="user" 表示客户发送的消息
+- role="assistant" 表示员工/客服回复的消息
+- 如果无法确定是谁说的，根据内容判断
+只返回JSON数组，不要其他任何内容。如果图片中无法识别出对话，请返回：[]`;
+
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1000,
+        temperature: 0.3,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: dataUrl } }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let text = data.content?.[0]?.text || '';
+
+    // Clean up the response - extract JSON if wrapped in markdown
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      text = jsonMatch[0];
+    }
+
+    let conversations = [];
+    try {
+      conversations = JSON.parse(text);
+    } catch {
+      if (text === '[]') {
+        showToast('无法从图片中识别出对话内容');
+      } else {
+        showToast('解析对话失败，请重试');
+      }
+      return;
+    }
+
+    if (!Array.isArray(conversations) || conversations.length === 0) {
+      showToast('未识别到有效对话');
+      return;
+    }
+
+    // Save to customer conversations
+    const customer = getCurrentCustomer();
+    const timestamp = new Date().toISOString();
+    for (const conv of conversations) {
+      if (conv.role && conv.content) {
+        customer.conversations.push({
+          role: conv.role === 'user' ? 'user' : 'assistant',
+          content: conv.content,
+          timestamp
+        });
+      }
+    }
+
+    // Limit history
+    if (customer.conversations.length > MAX_CONVERSATION_HISTORY * 2) {
+      customer.conversations = customer.conversations.slice(-MAX_CONVERSATION_HISTORY * 2);
+    }
+
+    saveCustomers();
+    updateConversationDisplay();
+
+    $importImageResult.classList.remove('hidden');
+    $importImageResult.className = 'import-result success';
+    $importImageResult.textContent = `成功导入 ${conversations.length} 条对话记录`;
+    showToast(`成功导入 ${conversations.length} 条对话`);
+
+  } catch (err) {
+    $importImageResult.classList.remove('hidden');
+    $importImageResult.className = 'import-result error';
+    $importImageResult.textContent = '识别失败: ' + err.message;
+    showToast('图片识别失败');
+    console.error(err);
+  } finally {
+    $btnUploadImage.disabled = false;
+    $btnUploadImage.textContent = 'AI 识别导入';
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleTextParse() {
+  const text = $importTextInput.value.trim();
+  if (!text || !currentCustomerId) return;
+
+  $btnParseText.disabled = true;
+  $btnParseText.textContent = '解析中...';
+  $importTextResult.classList.add('hidden');
+
+  try {
+    const prompt = `请解析以下对话记录，返回JSON数组格式：[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]。
+- role="user" 表示客户发送的消息（通常是英文，除非明确说是员工回复）
+- role="assistant" 表示员工/客服回复的消息
+识别规则：
+1. 通常客户消息会询问价格、交期、数量等产品信息
+2. 员工回复通常更专业、会提供详细报价或解答
+3. 如果无法确定，根据内容语气判断
+
+只返回JSON数组，不要其他任何内容。
+
+对话记录：
+${text}`;
+
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 800,
+        temperature: 0.3,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let responseText = data.content?.[0]?.text || '';
+
+    // Extract JSON
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      responseText = jsonMatch[0];
+    }
+
+    let conversations = [];
+    try {
+      conversations = JSON.parse(responseText);
+    } catch {
+      showToast('解析失败，请检查格式后重试');
+      return;
+    }
+
+    if (!Array.isArray(conversations) || conversations.length === 0) {
+      showToast('未识别到有效对话');
+      return;
+    }
+
+    // Save to customer conversations
+    const customer = getCurrentCustomer();
+    const timestamp = new Date().toISOString();
+    for (const conv of conversations) {
+      if (conv.role && conv.content) {
+        customer.conversations.push({
+          role: conv.role === 'user' ? 'user' : 'assistant',
+          content: conv.content,
+          timestamp
+        });
+      }
+    }
+
+    if (customer.conversations.length > MAX_CONVERSATION_HISTORY * 2) {
+      customer.conversations = customer.conversations.slice(-MAX_CONVERSATION_HISTORY * 2);
+    }
+
+    saveCustomers();
+    updateConversationDisplay();
+
+    $importTextResult.classList.remove('hidden');
+    $importTextResult.className = 'import-result success';
+    $importTextResult.textContent = `成功导入 ${conversations.length} 条对话记录`;
+    showToast(`成功导入 ${conversations.length} 条对话`);
+
+    // Clear textarea after success
+    $importTextInput.value = '';
+
+  } catch (err) {
+    $importTextResult.classList.remove('hidden');
+    $importTextResult.className = 'import-result error';
+    $importTextResult.textContent = '解析失败: ' + err.message;
+    showToast('解析失败');
+    console.error(err);
+  } finally {
+    $btnParseText.disabled = false;
+    $btnParseText.textContent = 'AI 解析导入';
+  }
+}
+
+function handleSummaryAdd() {
+  const text = $importSummaryInput.value.trim();
+  if (!text || !currentCustomerId) return;
+
+  const customer = getCurrentCustomer();
+  customer.conversations.push({
+    role: 'summary',
+    content: text,
+    timestamp: new Date().toISOString()
+  });
+
+  if (customer.conversations.length > MAX_CONVERSATION_HISTORY * 2) {
+    customer.conversations = customer.conversations.slice(-MAX_CONVERSATION_HISTORY * 2);
+  }
+
+  saveCustomers();
+  updateConversationDisplay();
+  showToast('摘要已添加到历史记录');
+
+  // Reset
+  $importSummaryInput.value = '';
+  $btnAddSummary.disabled = true;
+  closeImportModal();
 }
 
 // ===== Utilities =====
