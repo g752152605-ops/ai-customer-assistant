@@ -35,6 +35,9 @@ const $customerOrderHistory = $('customer-order-history');
 const $customerPaymentRecords = $('customer-payment-records');
 const $customerCreditRating = $('customer-credit-rating');
 const $customerOtherNotes = $('customer-other-notes');
+const $customerProdViewCount = $('customer-prod-view-count');
+const $customerValidInquiry = $('customer-valid-inquiry');
+const $customerLoginDays = $('customer-login-days');
 const $customerFormSubmit = $('customer-form-submit');
 const $customerFormCancel = $('customer-form-cancel');
 
@@ -286,6 +289,9 @@ function fillCustomerForm(c) {
   $customerPaymentRecords.value = c.backgroundCheck?.paymentRecords || '';
   $customerCreditRating.value = c.backgroundCheck?.creditRating || '';
   $customerOtherNotes.value = c.backgroundCheck?.otherNotes || '';
+  $customerProdViewCount.value = c.backgroundCheck?.prodViewCount || '';
+  $customerValidInquiry.value = c.backgroundCheck?.validInquiry || '';
+  $customerLoginDays.value = c.backgroundCheck?.loginDays || '';
   $customerForm.dataset.editingId = c.id;
 }
 
@@ -307,7 +313,10 @@ function handleSaveCustomer() {
       orderHistory: $customerOrderHistory.value.trim(),
       paymentRecords: $customerPaymentRecords.value.trim(),
       creditRating: $customerCreditRating.value.trim(),
-      otherNotes: $customerOtherNotes.value.trim()
+      otherNotes: $customerOtherNotes.value.trim(),
+      prodViewCount: $customerProdViewCount.value || '',
+      validInquiry: $customerValidInquiry.value || '',
+      loginDays: $customerLoginDays.value || ''
     }
   };
 
@@ -352,11 +361,17 @@ function updateCurrentCustomerDetail() {
   }
 
   const typeLabels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
+  const ninetyDayParts = [];
+  if (c.backgroundCheck?.prodViewCount) ninetyDayParts.push(`浏览${c.backgroundCheck.prodViewCount}次`);
+  if (c.backgroundCheck?.validInquiry) ninetyDayParts.push(`询盘${c.backgroundCheck.validInquiry}次`);
+  if (c.backgroundCheck?.loginDays) ninetyDayParts.push(`登录${c.backgroundCheck.loginDays}天`);
+
   const parts = [
     c.company && `公司: ${c.company}`,
     c.type && `类型: ${typeLabels[c.type] || c.type}`,
     c.region && `地区: ${c.region}`,
-    c.backgroundCheck?.creditRating && `信用: ${c.backgroundCheck.creditRating}`
+    c.backgroundCheck?.creditRating && `信用: ${c.backgroundCheck.creditRating}`,
+    ninetyDayParts.length > 0 && `近90天: ${ninetyDayParts.join(', ')}`
   ].filter(Boolean);
 
   $currentCustomerInfo.textContent = parts.join(' | ') || '暂无详细信息';
@@ -472,15 +487,22 @@ async function generateReply({ message, type, tone, chunks }) {
 
   let customerContext = '';
   if (customer) {
+    const ninetyDayActivity = [];
+    if (customer.backgroundCheck?.prodViewCount) ninetyDayActivity.push(`产品浏览: ${customer.backgroundCheck.prodViewCount}次`);
+    if (customer.backgroundCheck?.validInquiry) ninetyDayActivity.push(`有效询盘: ${customer.backgroundCheck.validInquiry}次`);
+    if (customer.backgroundCheck?.loginDays) ninetyDayActivity.push(`登陆: ${customer.backgroundCheck.loginDays}天`);
+
     customerContext = `Customer: ${customer.name}
 Company: ${customer.company || 'Unknown'}
 Level: ${customer.level || 'Unrated'} ${customer.level ? getLevelStrategy(customer.level) : ''}
 Type: ${typeLabelMap[customer.type] || customer.type || 'Unknown'}
+Buyer Characteristic: ${customer.platform || 'Unknown'} (${customer.source || 'Unknown industry'})
 Region: ${customer.region || 'Unknown'}
 Position: ${customer.position || 'Unknown'}
 Order History: ${customer.backgroundCheck?.orderHistory || 'No prior orders'}
 Payment Records: ${customer.backgroundCheck?.paymentRecords || 'Unknown'}
 Credit Rating: ${customer.backgroundCheck?.creditRating || 'Unrated'}
+90-Day Activity: ${ninetyDayActivity.length > 0 ? ninetyDayActivity.join(', ') : 'No recent activity'}
 Notes: ${customer.backgroundCheck?.otherNotes || 'None'}`;
   }
 
