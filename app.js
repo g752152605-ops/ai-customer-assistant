@@ -472,22 +472,16 @@ async function generateReply({ message, type, tone, chunks }) {
 
   let customerContext = '';
   if (customer) {
-    customerContext = `
-## Customer Background (Due Diligence)
-- Name: ${customer.name}
-- Level: ${customer.level || 'Not rated'}
-- Company: ${customer.company || 'Unknown'}
-- Company Website: ${customer.website || 'Not provided'}
-- Type: ${typeLabelMap[customer.type] || customer.type || 'Unknown'}
-- Buyer Platform Preference: ${customer.platform || 'Unknown'}
-- Position: ${customer.position || 'Unknown'}
-- Region: ${customer.region || 'Unknown'}
-- Source: ${customer.source || 'Unknown'}
-- Order History: ${customer.backgroundCheck?.orderHistory || 'No records'}
-- Payment Records: ${customer.backgroundCheck?.paymentRecords || 'No records'}
-- Credit Rating: ${customer.backgroundCheck?.creditRating || 'Not rated'}
-- Other Notes: ${customer.backgroundCheck?.otherNotes || 'None'}
-`;
+    customerContext = `Customer: ${customer.name}
+Company: ${customer.company || 'Unknown'}
+Level: ${customer.level || 'Unrated'} ${customer.level ? getLevelStrategy(customer.level) : ''}
+Type: ${typeLabelMap[customer.type] || customer.type || 'Unknown'}
+Region: ${customer.region || 'Unknown'}
+Position: ${customer.position || 'Unknown'}
+Order History: ${customer.backgroundCheck?.orderHistory || 'No prior orders'}
+Payment Records: ${customer.backgroundCheck?.paymentRecords || 'Unknown'}
+Credit Rating: ${customer.backgroundCheck?.creditRating || 'Unrated'}
+Notes: ${customer.backgroundCheck?.otherNotes || 'None'}`;
   }
 
   let historyContext = '';
@@ -525,6 +519,39 @@ Style: Professional B2B sales - like reading an email from a trusted supplier.
 Length: 80-120 words.
 Format: Plain text email only, no bullet points, no markdown.
 Closing: Always include "Best regards,"
+
+## HOW TO USE CUSTOMER BACKGROUND:
+
+Based on the customer's Level, Credit Rating, and Order History, ADAPT your reply strategy:
+
+**For L4-L5 (VIP/Key accounts):**
+- Personalized greeting with subtle acknowledgment of their importance
+- Reference past cooperation or express appreciation for their business
+- Offer priority service or special attention
+- Emphasize long-term partnership value
+
+**For L2-L3 (Major/Growth accounts):**
+- Professional but warm tone
+- Show interest in growing the business relationship
+- Highlight product value and competitive advantages
+- Offer next steps that encourage deeper engagement
+
+**For L1 (New customers):**
+- Build trust and credibility first
+- Briefly introduce company strengths and experience
+- Be helpful and informative without being pushy
+- Make it easy for them to take next step
+
+**For L0 (High Risk customers):**
+- Cautious and precise language
+- Clear payment terms and conditions stated upfront
+- Verify all details before confirming
+- Professional but not overly warm until trust is established
+
+**Credit Rating Impact:**
+- High Risk: Emphasize payment terms, be specific about conditions
+- Medium: Standard professional tone with clear terms
+- Low Risk: Streamlined, show trust and confidence
 
 Customer context:
 ${customerContext}
@@ -643,6 +670,18 @@ function formatChunksForPrompt(chunks) {
 function getTypeLabel(type) {
   const labels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
   return labels[type] || type;
+}
+
+function getLevelStrategy(level) {
+  const strategies = {
+    'L5': '(VIP客户 - 提供最高优先级服务，个性化对待，强调长期合作关系)',
+    'L4': '(重点客户 - 优先处理，个性化报价，展现合作价值)',
+    'L3': '(大客户 - 标准专业服务，适当个性化)',
+    'L2': '(成长型 - 重点发展关系，展示产品优势和合作前景)',
+    'L1': '(新客户 - 建立信任关系，详细介绍公司实力和产品优势)',
+    'L0': '(高风险 - 谨慎报价，明确付款条款，所有细节确认到位)'
+  };
+  return strategies[level] || '';
 }
 
 // ===== Update Knowledge Preview =====
