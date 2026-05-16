@@ -2,7 +2,13 @@ export async function onRequest(context) {
   const { request, env } = context;
 
   const API_KEY = env.API_KEY;
-  const API_BASE = env.API_URL || 'https://mimimax.cn';
+  const API_BASE = (env.API_URL || 'https://mimimax.cn').replace(/\/$/, '');
+
+  if (!API_KEY) {
+    return new Response(JSON.stringify({ error: 'API_KEY not configured' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
   const MODEL = 'MiniMax-M2.7-highspeed';
 
   const corsHeaders = {
