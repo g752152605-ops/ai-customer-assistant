@@ -2,7 +2,7 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
-  const API_KEY = 'sk-33309df70b18ae1ae29d5ef2807f4f82fc9f8e2a';
+  const API_KEY = env.API_KEY;
   const API_BASE = 'https://mimimax.cn';
   const MODEL = 'MiniMax-M2.7-highspeed';
 
@@ -17,8 +17,8 @@ export async function onRequest(context) {
   }
 
   const d1Token = env.CLOUDFLARE_API_TOKEN;
-  const accountId = '44a56411ac5c17ce7fe014be5103be8a';
-  const dbId = 'd2ce9da1-3730-482b-ace0-5254f82be05b';
+  const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+  const dbId = env.CLOUDFLARE_D1_DB_ID;
   const d1ApiBase = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}`;
 
   if (!d1Token) {

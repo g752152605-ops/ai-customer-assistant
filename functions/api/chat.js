@@ -1,7 +1,7 @@
 export async function onRequest(context) {
   const { request, env } = context;
 
-  const API_KEY = 'sk-33309df70b18ae1ae29d5ef2807f4f82fc9f8e2a';
+  const API_KEY = env.API_KEY;
   const API_BASE = 'https://mimimax.cn';
   const MODEL = 'MiniMax-M2.7-highspeed';
 
