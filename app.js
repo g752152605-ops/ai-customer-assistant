@@ -63,6 +63,7 @@ const $outputPlaceholder = $('output-placeholder');
 const $outputContent = $('output-content');
 const $outputLoading = $('output-loading');
 const $outputText = $('output-text');
+const $replyThoughts = $('reply-thoughts');
 const $btnCopy = $('btn-copy');
 const $chunksUsed = $('chunks-used');
 
@@ -449,7 +450,19 @@ async function handleGenerate() {
 
     $outputLoading.classList.add('hidden');
     $outputContent.classList.remove('hidden');
-    $outputText.textContent = reply;
+
+    // Parse reply to extract thoughts and actual reply
+    const { thoughts, replyText } = parseReplyWithThoughts(reply);
+
+    // Display thoughts section
+    if (thoughts) {
+      $replyThoughts.innerHTML = `<div class="reply-thoughts-title">💡 回复思路分析</div><ul>${thoughts.map(t => `<li>${t}</li>`).join('')}</ul>`;
+    } else {
+      $replyThoughts.innerHTML = '';
+    }
+
+    // Display reply text
+    $outputText.textContent = replyText;
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
     $customerMessage.value = '';
 
@@ -583,7 +596,28 @@ ${historyContext}`;
 Message type: ${typeLabels[type] || 'General Inquiry'}
 Tone: ${toneLabels[tone] || 'Professional'}
 
-Generate the reply now. Format: First show your thinking (Chinese), then the suggested reply (English chat style).`;
+Output format - you MUST follow this EXACT format:
+
+---THOUGHTS---
+[回复思路分析，用中文写，3-5个要点]
+要点包括：
+- 客户意图分析
+- 回复策略建议
+- 注意事项
+---
+
+---REPLY---
+[英文回复建议，使用即时聊天风格，短句，可以分段，每段1-2句话]
+[英文回复结束后，用中文括号注释关键表达的意思]
+---
+
+---REPLY---
+Hi Sarah! 👋
+Got your question about pricing.
+[好的，收到你的价格咨询]
+For this product, it's $XX/piece. [这个产品单价是XX美元]
+We also offer samples if you want to check quality first. [如果想确认质量，我们也提供样品]
+Sound good? 😊 [可以吗？]
 
   const response = await fetch(WORKER_URL, {
     method: 'POST',
@@ -612,6 +646,64 @@ Generate the reply now. Format: First show your thinking (Chinese), then the sug
   textContent = cleanAIPhrases(textContent);
 
   return textContent || '生成回复为空，请稍后重试。';
+}
+
+// ===== Parse reply with thoughts =====
+function parseReplyWithThoughts(reply) {
+  // Try to split by ---THOUGHTS--- and ---REPLY---
+  const thoughtsMatch = reply.match(/---THOUGHTS---([\s\S]*?)---REPLY---/);
+  const replyMatch = reply.match(/---REPLY---([\s\S]*?)(?=---|$)/);
+
+  if (thoughtsMatch && replyMatch) {
+    const thoughtsText = thoughtsMatch[1].trim();
+    // Parse bullet points or numbered list
+    const thoughts = thoughtsText
+      .split(/\n/)
+      .map(line => line.replace(/^[-*\d.)\s]+/, '').trim())
+      .filter(line => line.length > 0);
+
+    return {
+      thoughts: thoughts,
+      replyText: replyMatch[1].trim()
+    };
+  }
+
+  // Fallback: if no clear separator found, try other patterns
+  // Check if first part looks like thoughts (mostly Chinese)
+  const lines = reply.split('\n').filter(l => l.trim());
+  const thoughts = [];
+  const replyLines = [];
+  let isThoughtsSection = true;
+
+  for (const line of lines) {
+    if (line.includes('回复思路') || line.includes('分析') || line.includes('意图') || line.includes('策略') || line.includes('注意')) {
+      isThoughtsSection = true;
+    }
+    if (line.includes('---') || line.includes('Reply') || line.includes('回复') === false && /[a-zA-Z]/.test(line)) {
+      if (thoughts.length > 0 && replyLines.length === 0) {
+        isThoughtsSection = false;
+      }
+    }
+
+    if (isThoughtsSection && !line.includes('---')) {
+      const cleanLine = line.replace(/^[-\*\d.)\s]+/, '').trim();
+      if (cleanLine && !line.includes('---')) {
+        thoughts.push(cleanLine);
+      }
+    } else if (!isThoughtsSection && !line.includes('---')) {
+      replyLines.push(line);
+    }
+  }
+
+  // If we couldn't parse properly, return the whole thing as reply
+  if (thoughts.length === 0 || replyLines.length === 0) {
+    return { thoughts: [], replyText: reply };
+  }
+
+  return {
+    thoughts: thoughts.slice(0, 5), // Max 5 thoughts
+    replyText: replyLines.join('\n')
+  };
 }
 
 // ===== Clean AI-sounding phrases =====
