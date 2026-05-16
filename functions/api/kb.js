@@ -3,7 +3,7 @@ export async function onRequest(context) {
   const url = new URL(request.url);
 
   const API_KEY = env.API_KEY;
-  const API_BASE = 'https://mimimax.cn';
+  const API_BASE = env.API_URL || 'https://mimimax.cn';
   const MODEL = 'MiniMax-M2.7-highspeed';
 
   const corsHeaders = {
