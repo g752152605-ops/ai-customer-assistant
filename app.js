@@ -617,7 +617,7 @@ Got your question about pricing.
 [好的，收到你的价格咨询]
 For this product, it's $XX/piece. [这个产品单价是XX美元]
 We also offer samples if you want to check quality first. [如果想确认质量，我们也提供样品]
-Sound good? 😊 [可以吗？]
+Sound good? 😊 [可以吗？]`
 
   const response = await fetch(WORKER_URL, {
     method: 'POST',
