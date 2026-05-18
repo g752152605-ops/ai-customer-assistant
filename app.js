@@ -11,7 +11,9 @@ const MAX_CONVERSATION_HISTORY = 10;
 // ===== State =====
 let knowledgeBase = [];
 let customers = [];
+let products = [];
 let currentCustomerId = null;
+let currentProductId = null;
 
 // ===== DOM Elements =====
 const $ = (id) => document.getElementById(id);
@@ -56,7 +58,23 @@ const $btnEditCurrent = $('btn-edit-current');
 const $customerMessage = $('customer-message');
 const $messageType = $('message-type');
 const $toneSelect = $('tone-select');
+const $productSelect = $('product-select');
 const $btnGenerate = $('btn-generate');
+const $btnAddProduct = $('btn-add-product');
+
+// Product form
+const $modalProduct = $('modal-product');
+const $modalProductBackdrop = $('modal-product-backdrop');
+const $modalProductClose = $('modal-product-close');
+const $modalProductTitle = $('modal-product-title');
+const $productForm = $('product-form');
+const $productTitle = $('product-title');
+const $productPrice = $('product-price');
+const $productMaterial = $('product-material');
+const $productCupType = $('product-cup-type');
+const $productDescription = $('product-description');
+const $productFormSubmit = $('product-form-submit');
+const $productFormCancel = $('product-form-cancel');
 
 // Output
 const $outputPlaceholder = $('output-placeholder');
@@ -109,6 +127,8 @@ const $btnImportHistory = $('btn-import-history');
 async function init() {
   await loadKnowledgeBase();
   loadCustomers();
+  loadProducts();
+  updateProductSelect();
   setupEventListeners();
   renderCustomerList();
   updateKnowledgeStats();
@@ -129,6 +149,16 @@ function setupEventListeners() {
   $customerFormCancel.addEventListener('click', closeCustomerModal);
   $customerForm.addEventListener('submit', (e) => { e.preventDefault(); handleSaveCustomer(); });
   $customerSearch.addEventListener('input', handleCustomerSearch);
+
+  // Product form
+  $btnAddProduct.addEventListener('click', openProductModal);
+  $modalProductBackdrop.addEventListener('click', closeProductModal);
+  $modalProductClose.addEventListener('click', closeProductModal);
+  $productFormCancel.addEventListener('click', closeProductModal);
+  $productForm.addEventListener('submit', handleProductSubmit);
+  $productSelect.addEventListener('change', () => {
+    currentProductId = $productSelect.value || null;
+  });
 
   $btnKnowledge.addEventListener('click', openKnowledgeModal);
   $modalBackdrop.addEventListener('click', closeKnowledgeModal);
@@ -186,6 +216,67 @@ function loadCustomers() {
 
 function saveCustomers() {
   localStorage.setItem('ai-customers-v2', JSON.stringify(customers));
+}
+
+// ===== Product Management =====
+function loadProducts() {
+  try {
+    const stored = localStorage.getItem('ai-products-v1');
+    products = stored ? JSON.parse(stored) : [];
+  } catch {
+    products = [];
+  }
+}
+
+function saveProducts() {
+  localStorage.setItem('ai-products-v1', JSON.stringify(products));
+}
+
+function getCurrentProduct() {
+  return products.find(p => p.id === currentProductId) || null;
+}
+
+function updateProductSelect() {
+  $productSelect.innerHTML = '<option value="">无指定产品</option>';
+  products.forEach(p => {
+    const selected = p.id === currentProductId ? 'selected' : '';
+    $productSelect.innerHTML += '<option value="' + p.id + '" ' + selected + '>' + p.title + '</option>';
+  });
+}
+
+function openProductModal() {
+  $productForm.reset();
+  $modalProductTitle.textContent = '添加产品';
+  $modalProduct.classList.remove('hidden');
+}
+
+function closeProductModal() {
+  $modalProduct.classList.add('hidden');
+}
+
+function handleProductSubmit(e) {
+  e.preventDefault();
+  const title = $productTitle.value.trim();
+  if (!title) {
+    showToast('请输入产品标题');
+    return;
+  }
+  const product = {
+    id: Date.now().toString(),
+    title: title,
+    price: $productPrice.value.trim(),
+    material: $productMaterial.value.trim(),
+    cupType: $productCupType.value.trim(),
+    description: $productDescription.value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  products.push(product);
+  saveProducts();
+  updateProductSelect();
+  currentProductId = product.id;
+  updateProductSelect();
+  closeProductModal();
+  showToast('产品已添加');
 }
 
 function getCurrentCustomer() {
@@ -498,6 +589,18 @@ async function generateReply({ message, type, tone, chunks }) {
 
   const typeLabelMap = { wholesaler: 'Wholesaler (批发商)', factory: 'Factory (工厂)', trader: 'Trader (贸易商)', distributor: 'Distributor (经销商)', agent: 'Agent (代理商)', other: 'Other (其他)' };
 
+  // Product context
+  let productContext = '';
+  const currentProduct = getCurrentProduct();
+  if (currentProduct) {
+    productContext = `Product Being Discussed:
+- Title: ${currentProduct.title}
+- Price: ${currentProduct.price || 'TBD'}
+- Material: ${currentProduct.material || 'TBD'}
+- Cup Type: ${currentProduct.cupType || 'TBD'}
+- Description: ${currentProduct.description || 'None'}`;
+  }
+
   let customerContext = '';
   if (customer) {
     const ninetyDayActivity = [];
@@ -589,6 +692,7 @@ Format: Brief bullet points in Chinese, 3-5 points max
 Customer context:
 ${customerContext}
 ${summaryContext}
+${productContext}
 ${historyContext}`;
 
   const userPrompt = `Customer message: "${message}"

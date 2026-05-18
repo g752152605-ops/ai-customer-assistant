@@ -112,6 +112,17 @@
                       <option value="casual">轻松 Casual</option>
                     </select>
                   </label>
+                  <label class="select-label">
+                    <span>产品</span>
+                    <select id="product-select" class="select">
+                      <option value="">无指定产品</option>
+                    </select>
+                  </label>
+                  <button class="btn btn-ghost btn-sm" id="btn-add-product" title="添加产品">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                  </button>
                 </div>
                 <button class="btn btn-primary" id="btn-generate">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -318,6 +329,55 @@
           <div class="form-actions">
             <button type="button" class="btn btn-ghost" id="customer-form-cancel">取消</button>
             <button type="submit" class="btn btn-primary" id="customer-form-submit">添加客户</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Form Modal -->
+  <div class="modal hidden" id="modal-product">
+    <div class="modal-backdrop" id="modal-product-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-product-title">添加产品</h3>
+        <button class="btn btn-ghost modal-close" id="modal-product-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="product-form" class="product-form">
+          <div class="form-row form-row-2">
+            <label class="form-label">
+              <span>产品标题 *</span>
+              <input type="text" id="product-title" class="form-input" placeholder="如：315ml 经典高脚红酒杯" required>
+            </label>
+            <label class="form-label">
+              <span>定价</span>
+              <input type="text" id="product-price" class="form-input" placeholder="如：$2.50/piece FOB Shanghai">
+            </label>
+          </div>
+          <div class="form-row form-row-2">
+            <label class="form-label">
+              <span>材质</span>
+              <input type="text" id="product-material" class="form-input" placeholder="如：高硼硅玻璃、无铅水晶">
+            </label>
+            <label class="form-label">
+              <span>杯型</span>
+              <input type="text" id="product-cup-type" class="form-input" placeholder="如：红酒杯、香槟杯、威士忌杯">
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="form-label">
+              <span>其他描述</span>
+              <textarea id="product-description" class="form-textarea" placeholder="容量、尺寸、工艺、用途等其他信息..."></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="product-form-cancel">取消</button>
+            <button type="submit" class="btn btn-primary" id="product-form-submit">添加产品</button>
           </div>
         </form>
       </div>
