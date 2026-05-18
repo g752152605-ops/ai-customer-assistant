@@ -164,43 +164,86 @@
           </div>
         </section>
 
-        <!-- Right: Output -->
+        <!-- Right: Output / Copilot -->
         <section class="panel panel-output">
-          <div class="panel-header">
-            <h2>AI 回复建议</h2>
-            <span class="badge badge-ai">AI Draft</span>
+          <div class="panel-tabs">
+            <button class="tab active" data-tab="output">回复建议</button>
+            <button class="tab" data-tab="copilot">AI 助手</button>
           </div>
-          <div class="output-area">
-            <div class="output-placeholder" id="output-placeholder">
-              <div class="placeholder-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-              </div>
-              <p>AI 生成的回复建议将显示在这里</p>
-              <span>选择客户 → 输入消息 → 点击「生成回复」</span>
+
+          <!-- Reply Output Tab -->
+          <div class="tab-content active" id="tab-output">
+            <div class="panel-header">
+              <h2>AI 回复建议</h2>
+              <span class="badge badge-ai">AI Draft</span>
             </div>
-            <div class="output-content hidden" id="output-content">
-              <div class="output-header">
-                <div class="output-meta">
-                  <span class="meta-item" id="chunks-used">0 个知识片段</span>
-                </div>
-                <button class="btn btn-sm btn-copy" id="btn-copy">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <div class="output-area">
+              <div class="output-placeholder" id="output-placeholder">
+                <div class="placeholder-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
-                  复制
-                </button>
+                </div>
+                <p>AI 生成的回复建议将显示在这里</p>
+                <span>选择客户 → 输入消息 → 点击「生成回复」</span>
               </div>
-              <div class="reply-thoughts" id="reply-thoughts"></div>
-              <div class="output-divider"></div>
-              <div class="output-text" id="output-text"></div>
+              <div class="output-content hidden" id="output-content">
+                <div class="output-header">
+                  <div class="output-meta">
+                    <span class="meta-item" id="chunks-used">0 个知识片段</span>
+                  </div>
+                  <button class="btn btn-sm btn-copy" id="btn-copy">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    复制
+                  </button>
+                </div>
+                <div class="reply-thoughts" id="reply-thoughts"></div>
+                <div class="output-divider"></div>
+                <div class="output-text" id="output-text"></div>
+              </div>
+            </div>
+            <div class="output-loading hidden" id="output-loading">
+              <div class="loading-spinner"></div>
+              <p>AI 正在生成回复建议...</p>
+              <span>结合客户背调信息 + 知识库检索</span>
             </div>
           </div>
-          <div class="output-loading hidden" id="output-loading">
-            <div class="loading-spinner"></div>
-            <p>AI 正在生成回复建议...</p>
-            <span>结合客户背调信息 + 知识库检索</span>
+
+          <!-- Copilot Tab -->
+          <div class="tab-content" id="tab-copilot">
+            <div class="panel-header">
+              <h2>AI 助手</h2>
+              <button class="btn btn-sm btn-ghost" id="btn-clear-copilot">清空对话</button>
+            </div>
+            <div class="copilot-area">
+              <div class="copilot-messages" id="copilot-messages">
+                <div class="copilot-empty">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <p>开始与 AI 助手对话</p>
+                  <span>基于当前客户的上下文提供建议和分析</span>
+                </div>
+              </div>
+              <div class="copilot-input-area">
+                <div class="copilot-customer-hint" id="copilot-customer-hint">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span id="copilot-customer-name">请先选择客户</span>
+                </div>
+                <div class="copilot-input-row">
+                  <input type="text" id="copilot-message" class="copilot-input" placeholder="向 AI 助手提问...">
+                  <button class="btn btn-primary" id="btn-copilot-send">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -506,13 +549,15 @@ Customer: What is the MOQ?"></textarea>
 
   <script src="app.js"></script>
   <script>
-    // Tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    // Tab switching - panel specific
+    document.querySelectorAll('.panel-tabs').forEach(tabGroup => {
+      tabGroup.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          tabGroup.parentElement.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          tabGroup.parentElement.querySelector('#tab-' + tab.dataset.tab).classList.add('active');
+        });
       });
     });
   </script>
