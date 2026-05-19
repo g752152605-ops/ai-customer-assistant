@@ -79,13 +79,11 @@ const $productFormCancel = $('product-form-cancel');
 
 // Output
 const $outputPlaceholder = $('output-placeholder');
-const $outputContentArea = $('output-content-area');
+const $outputAllContent = $('output-all-content');
 const $outputLoading = $('output-loading');
 const $thoughtsList = $('thoughts-list');
 const $replyText = $('reply-text');
 const $replyCnText = $('reply-cn-text');
-const $replyText2 = $('reply-text-2');
-const $replyCnText2 = $('reply-cn-text-2');
 const $chunksUsed = $('chunks-used');
 
 // Knowledge
@@ -157,8 +155,6 @@ function setupEventListeners() {
   $btnGenerate.addEventListener('click', handleGenerate);
   $('btn-copy-reply').addEventListener('click', () => handleCopy('reply'));
   $('btn-copy-cn').addEventListener('click', () => handleCopy('cn'));
-  $('btn-copy-reply2').addEventListener('click', () => handleCopy('reply'));
-  $('btn-copy-cn2').addEventListener('click', () => handleCopy('cn'));
   $btnAddCustomer.addEventListener('click', () => openCustomerModal());
   $btnEditCurrent.addEventListener('click', () => {
     if (currentCustomerId) editCustomer(currentCustomerId);
@@ -221,13 +217,6 @@ function setupEventListeners() {
     $btnAddSummary.disabled = !$importSummaryInput.value.trim();
   });
   $btnAddSummary.addEventListener('click', handleSummaryAdd);
-
-  // Reply tabs
-  document.querySelectorAll('.output-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      switchReplyTab(btn.dataset.replyTab);
-    });
-  });
 
   // Copilot
   $btnCopilotSend.addEventListener('click', handleCopilotSend);
@@ -562,7 +551,7 @@ async function handleGenerate() {
   }
 
   $outputPlaceholder.classList.add('hidden');
-  $outputContentArea.classList.add('hidden');
+  $outputAllContent.classList.add('hidden');
   $outputLoading.classList.remove('hidden');
   $btnGenerate.disabled = true;
 
@@ -592,7 +581,7 @@ async function handleGenerate() {
 
     $outputLoading.classList.add('hidden');
     $outputPlaceholder.classList.add('hidden');
-    $outputContentArea.classList.remove('hidden');
+    $outputAllContent.classList.remove('hidden');
 
     // Parse reply to extract thoughts and actual reply
     const { thoughts, replyText, cnReplyText } = parseReplyWithThoughts(reply);
@@ -604,28 +593,23 @@ async function handleGenerate() {
       $thoughtsList.innerHTML = '<div class="thoughts-empty">暂无思路分析</div>';
     }
 
-    // Display reply text and Chinese translation in reply tab (stacked)
+    // Display reply text
     $replyText.textContent = replyText;
+
+    // Display Chinese translation
     if (cnReplyText) {
       $replyCnText.textContent = cnReplyText;
     } else {
       $replyCnText.textContent = '暂无中文对照翻译';
     }
 
-    // Also populate cn tab (reply-tab-cn) for when user switches to it
-    $replyText2.textContent = replyText;
-    $replyCnText2.textContent = cnReplyText || '暂无中文对照翻译';
-
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
     $customerMessage.value = '';
-
-    // Switch to thoughts tab by default
-    switchReplyTab('thoughts');
 
   } catch (err) {
     $outputLoading.classList.add('hidden');
     $outputPlaceholder.classList.remove('hidden');
-    $outputContentArea.classList.add('hidden');
+    $outputAllContent.classList.add('hidden');
     showToast('生成失败: ' + err.message);
     console.error(err);
   } finally {
@@ -1700,15 +1684,6 @@ function clearCopilotChat() {
   saveCopilotMessages(currentCustomerId, copilotMessages);
   renderCopilotPanel();
   showToast('对话已清空');
-}
-
-function switchReplyTab(tabName) {
-  document.querySelectorAll('.output-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.replyTab === tabName);
-  });
-  document.querySelectorAll('.reply-tab-content').forEach(content => {
-    content.classList.toggle('active', content.id === 'reply-tab-' + tabName);
-  });
 }
 
 function updateCopilotCustomerTag() {

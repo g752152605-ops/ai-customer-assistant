@@ -167,27 +167,6 @@
         <!-- Right: Output + Copilot stacked -->
         <div class="right-column">
           <section class="panel panel-output">
-            <div class="output-tabs-bar">
-              <button class="output-tab-btn active" data-reply-tab="thoughts">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                思路分析
-              </button>
-              <button class="output-tab-btn" data-reply-tab="reply">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                回复建议
-              </button>
-              <button class="output-tab-btn" data-reply-tab="cn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                中文对照
-              </button>
-            </div>
-
             <div class="output-area-wrapper">
               <div class="output-placeholder" id="output-placeholder">
                 <div class="placeholder-icon">
@@ -199,69 +178,57 @@
                 <span>选择客户 → 输入消息 → 点击「生成回复」</span>
               </div>
 
-              <div class="output-content-area hidden" id="output-content-area">
-                <div class="reply-tab-content active" id="reply-tab-thoughts">
-                  <div class="reply-meta-row">
-                    <span class="reply-meta-label">回复思路分析</span>
+              <div class="output-all-content hidden" id="output-all-content">
+                <!-- Section 1: Thoughts -->
+                <div class="output-section" id="output-section-thoughts">
+                  <div class="output-section-header">
+                    <span class="output-section-label">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      思路分析
+                    </span>
                     <span class="reply-chunks" id="chunks-used">0 个知识片段</span>
                   </div>
                   <div class="thoughts-list" id="thoughts-list"></div>
                 </div>
 
-                <div class="reply-tab-content" id="reply-tab-reply">
-                  <div class="reply-section">
-                    <div class="reply-meta-row">
-                      <span class="reply-meta-label">英文回复</span>
-                      <button class="btn btn-sm btn-copy" id="btn-copy-reply" data-copy="reply">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                        复制
-                      </button>
-                    </div>
-                    <div class="reply-text" id="reply-text"></div>
+                <!-- Section 2: Reply -->
+                <div class="output-section" id="output-section-reply">
+                  <div class="output-section-header">
+                    <span class="output-section-label">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      回复建议（英文）
+                    </span>
+                    <button class="btn btn-sm btn-copy" id="btn-copy-reply" data-copy="reply">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                      复制
+                    </button>
                   </div>
-                  <div class="reply-divider"></div>
-                  <div class="reply-section">
-                    <div class="reply-meta-row">
-                      <span class="reply-meta-label">中文对照</span>
-                      <button class="btn btn-sm btn-copy" id="btn-copy-cn" data-copy="cn">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                        复制
-                      </button>
-                    </div>
-                    <div class="reply-cn-text" id="reply-cn-text"></div>
-                  </div>
+                  <div class="reply-text" id="reply-text"></div>
                 </div>
 
-                <div class="reply-tab-content" id="reply-tab-cn">
-                  <div class="reply-section">
-                    <div class="reply-meta-row">
-                      <span class="reply-meta-label">英文回复</span>
-                      <button class="btn btn-sm btn-copy" id="btn-copy-reply2" data-copy="reply">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                        复制
-                      </button>
-                    </div>
-                    <div class="reply-text" id="reply-text-2"></div>
+                <!-- Section 3: Chinese -->
+                <div class="output-section" id="output-section-cn">
+                  <div class="output-section-header">
+                    <span class="output-section-label">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                      </svg>
+                      中文对照
+                    </span>
+                    <button class="btn btn-sm btn-copy" id="btn-copy-cn" data-copy="cn">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                      复制
+                    </button>
                   </div>
-                  <div class="reply-divider"></div>
-                  <div class="reply-section">
-                    <div class="reply-meta-row">
-                      <span class="reply-meta-label">中文对照</span>
-                      <button class="btn btn-sm btn-copy" id="btn-copy-cn2" data-copy="cn">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                        复制
-                      </button>
-                    </div>
-                    <div class="reply-cn-text" id="reply-cn-text-2"></div>
-                  </div>
+                  <div class="reply-cn-text" id="reply-cn-text"></div>
                 </div>
               </div>
 
