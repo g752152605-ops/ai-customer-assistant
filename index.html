@@ -164,15 +164,10 @@
           </div>
         </section>
 
-        <!-- Right: Output / Copilot -->
+        <!-- Right: Output + Copilot stacked -->
         <section class="panel panel-output">
-          <div class="panel-tabs">
-            <button class="tab active" data-tab="output">回复建议</button>
-            <button class="tab" data-tab="copilot">AI 助手</button>
-          </div>
-
-          <!-- Reply Output Tab -->
-          <div class="tab-content active" id="tab-output">
+          <!-- Top: Reply Output -->
+          <div class="output-section">
             <div class="panel-header">
               <h2>AI 回复建议</h2>
               <span class="badge badge-ai">AI Draft</span>
@@ -180,7 +175,7 @@
             <div class="output-area">
               <div class="output-placeholder" id="output-placeholder">
                 <div class="placeholder-icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                 </div>
@@ -211,37 +206,31 @@
             </div>
           </div>
 
-          <!-- Copilot Tab -->
-          <div class="tab-content" id="tab-copilot">
-            <div class="panel-header">
-              <h2>AI 助手</h2>
-              <button class="btn btn-sm btn-ghost" id="btn-clear-copilot">清空对话</button>
-            </div>
-            <div class="copilot-area">
-              <div class="copilot-messages" id="copilot-messages">
-                <div class="copilot-empty">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  <p>开始与 AI 助手对话</p>
-                  <span>基于当前客户的上下文提供建议和分析</span>
-                </div>
+          <!-- Divider -->
+          <div class="panel-divider">
+            <span>AI 助手</span>
+            <button class="btn btn-sm btn-ghost" id="btn-clear-copilot">清空</button>
+          </div>
+
+          <!-- Bottom: Copilot Chat -->
+          <div class="copilot-section">
+            <div class="copilot-messages" id="copilot-messages">
+              <div class="copilot-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <p>向 AI 助手咨询客户策略</p>
+                <span id="copilot-customer-name">请先选择客户</span>
               </div>
-              <div class="copilot-input-area">
-                <div class="copilot-customer-hint" id="copilot-customer-hint">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </div>
+            <div class="copilot-input-area">
+              <div class="copilot-input-row">
+                <input type="text" id="copilot-message" class="copilot-input" placeholder="向 AI 助手提问...">
+                <button class="btn btn-primary" id="btn-copilot-send">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                   </svg>
-                  <span id="copilot-customer-name">请先选择客户</span>
-                </div>
-                <div class="copilot-input-row">
-                  <input type="text" id="copilot-message" class="copilot-input" placeholder="向 AI 助手提问...">
-                  <button class="btn btn-primary" id="btn-copilot-send">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                  </button>
-                </div>
+                </button>
               </div>
             </div>
           </div>

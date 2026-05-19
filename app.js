@@ -582,7 +582,7 @@ async function handleGenerate() {
     $outputContent.classList.remove('hidden');
 
     // Parse reply to extract thoughts and actual reply
-    const { thoughts, replyText } = parseReplyWithThoughts(reply);
+    const { thoughts, replyText, cnReplyText } = parseReplyWithThoughts(reply);
 
     // Display thoughts section
     if (thoughts) {
@@ -591,8 +591,12 @@ async function handleGenerate() {
       $replyThoughts.innerHTML = '';
     }
 
-    // Display reply text
-    $outputText.textContent = replyText;
+    // Display reply text with Chinese version
+    if (cnReplyText) {
+      $outputText.innerHTML = `<div class="reply-en">${escapeHtml(replyText)}</div><div class="reply-cn">${escapeHtml(cnReplyText)}</div>`;
+    } else {
+      $outputText.textContent = replyText;
+    }
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
     $customerMessage.value = '';
 
@@ -751,16 +755,26 @@ Output format - you MUST follow this EXACT format:
 
 ---REPLY---
 [英文回复建议，使用即时聊天风格，短句，可以分段，每段1-2句话]
-[英文回复结束后，用中文括号注释关键表达的意思]
+---
+
+---CN-REPLY---
+[中文对照版本：完整翻译英文回复为自然流畅的中文，保持原文的语气和风格]
 ---
 
 ---REPLY---
 Hi Sarah! 👋
 Got your question about pricing.
-[好的，收到你的价格咨询]
-For this product, it's $XX/piece. [这个产品单价是XX美元]
-We also offer samples if you want to check quality first. [如果想确认质量，我们也提供样品]
-Sound good? 😊 [可以吗？]`
+For this product, it's $XX/piece.
+We also offer samples if you want to check quality first.
+Sound good? 😊
+---
+
+---CN-REPLY---
+你好 Sarah！👋
+收到你关于价格的咨询。
+这个产品的单价是XX美元。
+如果你想确认质量，我们也提供样品。
+可以吗？😊`
 
   const response = await fetch(WORKER_URL, {
     method: 'POST',
@@ -795,19 +809,23 @@ Sound good? 😊 [可以吗？]`
 function parseReplyWithThoughts(reply) {
   // Try to split by ---THOUGHTS--- and ---REPLY---
   const thoughtsMatch = reply.match(/---THOUGHTS---([\s\S]*?)---REPLY---/);
-  const replyMatch = reply.match(/---REPLY---([\s\S]*?)(?=---|$)/);
+  const replyMatch = reply.match(/---REPLY---([\s\S]*?)(?=---CN-REPLY---|---REPLY---|$)/i);
+  const cnMatch = reply.match(/---CN-REPLY---([\s\S]*?)(?=---REPLY---|$)/i);
 
   if (thoughtsMatch && replyMatch) {
     const thoughtsText = thoughtsMatch[1].trim();
-    // Parse bullet points or numbered list
     const thoughts = thoughtsText
       .split(/\n/)
       .map(line => line.replace(/^[-*\d.)\s]+/, '').trim())
       .filter(line => line.length > 0);
 
+    let replyText = replyMatch[1].trim();
+    replyText = replyText.replace(/---CN-REPLY---[\s\S]*$/i, '').trim();
+
     return {
       thoughts: thoughts,
-      replyText: replyMatch[1].trim()
+      replyText: replyText,
+      cnReplyText: cnMatch ? cnMatch[1].trim() : ''
     };
   }
 
@@ -838,14 +856,14 @@ function parseReplyWithThoughts(reply) {
     }
   }
 
-  // If we couldn't parse properly, return the whole thing as reply
   if (thoughts.length === 0 || replyLines.length === 0) {
-    return { thoughts: [], replyText: reply };
+    return { thoughts: [], replyText: reply, cnReplyText: '' };
   }
 
   return {
-    thoughts: thoughts.slice(0, 5), // Max 5 thoughts
-    replyText: replyLines.join('\n')
+    thoughts: thoughts.slice(0, 5),
+    replyText: replyLines.join('\n'),
+    cnReplyText: ''
   };
 }
 
@@ -1451,30 +1469,28 @@ function saveCopilotMessages(customerId, messages) {
 
 function renderCopilotPanel() {
   const customer = getCurrentCustomer();
+  const customerName = customer ? escapeHtml(customer.name) : null;
 
   if (!customer) {
-    $copilotCustomerName.textContent = '请先选择客户';
     $copilotMessages.innerHTML = `
       <div class="copilot-empty">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <p>选择客户后，开始与 AI 助手对话</p>
-        <span>AI 将基于当前客户的上下文提供建议</span>
+        <p>向 AI 助手咨询客户策略</p>
+        <span>请先选择客户</span>
       </div>`;
     return;
   }
 
-  $copilotCustomerName.textContent = customer.name;
-
   if (copilotMessages.length === 0) {
     $copilotMessages.innerHTML = `
       <div class="copilot-empty">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <p>开始与 AI 助手对话</p>
-        <span>基于客户「${escapeHtml(customer.name)}」的上下文提供建议</span>
+        <p>向 AI 助手咨询客户策略</p>
+        <span>当前客户：${customerName}</span>
       </div>`;
     return;
   }
@@ -1524,7 +1540,7 @@ async function handleCopilotSend() {
   $copilotMessages.scrollTop = $copilotMessages.scrollHeight;
 
   try {
-    const reply = await generateCopilotReply(customer, copilotMessages.slice(0, -1));
+    const reply = await generateCopilotReply(customer, copilotMessages);
 
     // Remove loading
     loadingEl.remove();
