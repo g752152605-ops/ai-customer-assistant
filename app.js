@@ -586,7 +586,7 @@ async function handleGenerate() {
     $outputAllContent.classList.remove('hidden');
 
     // Parse reply to extract thoughts and actual reply
-    const { thoughts, replyText, cnReplyText } = parseReplyWithThoughts(reply);
+    const { thoughts, replyStrategy, replyText, cnReplyText } = parseReplyWithThoughts(reply);
 
     // Display thoughts
     if (thoughts && thoughts.length > 0) {
