@@ -82,6 +82,7 @@ const $outputPlaceholder = $('output-placeholder');
 const $outputAllContent = $('output-all-content');
 const $outputLoading = $('output-loading');
 const $thoughtsList = $('thoughts-list');
+const $replyStrategyList = $('reply-strategy-list');
 const $replyText = $('reply-text');
 const $replyTextCn = $('reply-text-cn');
 const $replyCnTextDouble = $('reply-cn-text-double');
@@ -594,6 +595,13 @@ async function handleGenerate() {
       $thoughtsList.innerHTML = '<div class="thoughts-empty">暂无思路分析</div>';
     }
 
+    // Display reply strategy
+    if (replyStrategy && replyStrategy.length > 0) {
+      $replyStrategyList.innerHTML = replyStrategy.map(t => `<div class="thought-item"><span class="thought-bullet"></span>${escapeHtml(t)}</div>`).join('');
+    } else {
+      $replyStrategyList.innerHTML = '<div class="thoughts-empty">暂无回复策略</div>';
+    }
+
     // Display reply text
     $replyText.textContent = replyText;
 
@@ -819,22 +827,44 @@ function parseReplyWithThoughts(reply) {
 
   if (thoughtsMatch && replyMatch) {
     const thoughtsText = thoughtsMatch[1].trim();
-    const thoughts = thoughtsText
+    const allLines = thoughtsText
       .split(/\n/)
       .map(line => line.replace(/^[-*\d.)\s]+/, '').trim())
       .filter(line => line.length > 0);
+
+    // Split thoughts into: 思路分析 (intent/notes) and 回复策略 (strategy/how to reply)
+    const analysisKeywords = ['意图', '诉求', '态度', '注意', '策略'];
+    const strategyKeywords = ['策略', '回复', '建议', '长期', '建立', '美国', '直接', '友好', '分段'];
+
+    const thoughts = [];
+    const replyStrategy = [];
+
+    for (const line of allLines) {
+      const isStrategy = strategyKeywords.some(k => line.includes(k)) && !line.includes('意图分析') && !line.includes('核心诉求');
+      if (isStrategy) {
+        replyStrategy.push(line);
+      } else {
+        thoughts.push(line);
+      }
+    }
+
+    // If splitting didn't work well, put everything in thoughts
+    if (replyStrategy.length === 0) {
+      replyStrategy.push('建议：根据客户购买意向和态度，制定针对性的回复策略');
+    }
 
     let replyText = replyMatch[1].trim();
 
     return {
       thoughts: thoughts,
+      replyStrategy: replyStrategy,
       replyText: replyText,
       cnReplyText: cnMatch ? cnMatch[1].trim() : ''
     };
   }
 
   // Fallback: if no clear separator found, treat entire response as reply
-  return { thoughts: [], replyText: reply, cnReplyText: '' };
+  return { thoughts: [], replyStrategy: [], replyText: reply, cnReplyText: '' };
 }
 
 // ===== Clean AI-sounding phrases =====

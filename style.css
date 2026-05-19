@@ -353,7 +353,7 @@ body {
 .tab:hover { color: var(--text-secondary); background: rgba(0,0,0,0.02); }
 .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--surface); }
 
-.tab-content { display: none; flex-direction: column; flex: 1; min-height: 0; }
+.tab-content { display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 .tab-content.active { display: flex; }
 
 /* ===========================
@@ -507,7 +507,13 @@ body {
   flex-direction: column;
   gap: 8px;
   background: var(--bg);
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+.conversation-area::-webkit-scrollbar { width: 5px; }
+.conversation-area::-webkit-scrollbar-track { background: transparent; }
+.conversation-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 .conv-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 40px 0; }
 
@@ -821,11 +827,28 @@ body {
 .conv-summary .conv-role { color: var(--warning); }
 
 /* ===========================
+   Panel Input (left grid cell)
+   =========================== */
+.panel-input {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ===========================
    Right Panel: Stacked Output + Copilot
    =========================== */
 .panel-output {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel-copilot {
+  flex-shrink: 0;
 }
 
 .output-area-wrapper {
