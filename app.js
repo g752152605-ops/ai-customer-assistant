@@ -82,8 +82,6 @@ const $outputPlaceholder = $('output-placeholder');
 const $outputAllContent = $('output-all-content');
 const $outputLoading = $('output-loading');
 const $thoughtsList = $('thoughts-list');
-const $replyStrategyList = $('reply-strategy-list');
-const $replyText = $('reply-text');
 const $replyTextCn = $('reply-text-cn');
 const $replyCnTextDouble = $('reply-cn-text-double');
 const $chunksUsed = $('chunks-used');
@@ -156,7 +154,6 @@ async function init() {
 function setupEventListeners() {
   $btnGenerate.addEventListener('click', handleGenerate);
   $('btn-copy-reply').addEventListener('click', () => handleCopy('reply'));
-  $('btn-copy-cn').addEventListener('click', () => handleCopy('cn'));
   $btnAddCustomer.addEventListener('click', () => openCustomerModal());
   $btnEditCurrent.addEventListener('click', () => {
     if (currentCustomerId) editCustomer(currentCustomerId);
@@ -586,32 +583,22 @@ async function handleGenerate() {
     $outputAllContent.classList.remove('hidden');
 
     // Parse reply to extract thoughts and actual reply
-    const { thoughts, replyStrategy, replyText, cnReplyText } = parseReplyWithThoughts(reply);
+    const { thoughts, replyText, cnReplyText } = parseReplyWithThoughts(reply);
 
-    // Display thoughts
+    // Display thoughts as flowing block (no bullet points)
     if (thoughts && thoughts.length > 0) {
-      $thoughtsList.innerHTML = thoughts.map(t => `<div class="thought-item"><span class="thought-bullet"></span>${escapeHtml(t)}</div>`).join('');
+      $thoughtsList.innerHTML = `<div class="thoughts-block">${escapeHtml(thoughts.join(' '))}</div>`;
     } else {
       $thoughtsList.innerHTML = '<div class="thoughts-empty">暂无思路分析</div>';
     }
 
-    // Display reply strategy
-    if (replyStrategy && replyStrategy.length > 0) {
-      $replyStrategyList.innerHTML = replyStrategy.map(t => `<div class="thought-item"><span class="thought-bullet"></span>${escapeHtml(t)}</div>`).join('');
-    } else {
-      $replyStrategyList.innerHTML = '<div class="thoughts-empty">暂无回复策略</div>';
-    }
-
-    // Display reply text
-    $replyText.textContent = replyText;
-
-    // Display Chinese translation (side-by-side in section 3)
-    if (cnReplyText) {
+    // Display reply text and Chinese in side-by-side layout
+    if (replyText) {
       $replyTextCn.textContent = replyText;
-      $replyCnTextDouble.textContent = cnReplyText;
+      $replyCnTextDouble.textContent = cnReplyText || '暂无中文对照翻译';
     } else {
-      $replyTextCn.textContent = replyText;
-      $replyCnTextDouble.textContent = '暂无中文对照翻译';
+      $replyTextCn.textContent = '暂无回复建议';
+      $replyCnTextDouble.textContent = '';
     }
 
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
@@ -832,39 +819,17 @@ function parseReplyWithThoughts(reply) {
       .map(line => line.replace(/^[-*\d.)\s]+/, '').trim())
       .filter(line => line.length > 0);
 
-    // Split thoughts into: 思路分析 (intent/notes) and 回复策略 (strategy/how to reply)
-    const analysisKeywords = ['意图', '诉求', '态度', '注意', '策略'];
-    const strategyKeywords = ['策略', '回复', '建议', '长期', '建立', '美国', '直接', '友好', '分段'];
-
-    const thoughts = [];
-    const replyStrategy = [];
-
-    for (const line of allLines) {
-      const isStrategy = strategyKeywords.some(k => line.includes(k)) && !line.includes('意图分析') && !line.includes('核心诉求');
-      if (isStrategy) {
-        replyStrategy.push(line);
-      } else {
-        thoughts.push(line);
-      }
-    }
-
-    // If splitting didn't work well, put everything in thoughts
-    if (replyStrategy.length === 0) {
-      replyStrategy.push('建议：根据客户购买意向和态度，制定针对性的回复策略');
-    }
-
     let replyText = replyMatch[1].trim();
 
     return {
-      thoughts: thoughts,
-      replyStrategy: replyStrategy,
+      thoughts: allLines,
       replyText: replyText,
       cnReplyText: cnMatch ? cnMatch[1].trim() : ''
     };
   }
 
   // Fallback: if no clear separator found, treat entire response as reply
-  return { thoughts: [], replyStrategy: [], replyText: reply, cnReplyText: '' };
+  return { thoughts: [], replyText: reply, cnReplyText: '' };
 }
 
 // ===== Clean AI-sounding phrases =====
@@ -990,9 +955,9 @@ async function handleCopy(type) {
   if (type === 'cn') {
     text = $replyCnTextDouble.textContent;
   } else {
-    text = $replyText.textContent;
+    text = $replyTextCn.textContent;
   }
-  if (!text || text === '暂无中文对照翻译' || text === '暂无英文回复建议') return;
+  if (!text || text === '暂无中文对照翻译' || text === '暂无英文回复建议' || text === '暂无回复建议') return;
   try {
     await navigator.clipboard.writeText(text);
     showToast('已复制到剪贴板');
