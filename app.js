@@ -84,6 +84,8 @@ const $outputLoading = $('output-loading');
 const $thoughtsList = $('thoughts-list');
 const $replyText = $('reply-text');
 const $replyCnText = $('reply-cn-text');
+const $replyTextCn = $('reply-text-cn');
+const $replyCnTextDouble = $('reply-cn-text-double');
 const $chunksUsed = $('chunks-used');
 
 // Knowledge
@@ -596,11 +598,15 @@ async function handleGenerate() {
     // Display reply text
     $replyText.textContent = replyText;
 
-    // Display Chinese translation
+    // Display Chinese translation (stacked in section 2, side-by-side in section 3)
     if (cnReplyText) {
       $replyCnText.textContent = cnReplyText;
+      $replyTextCn.textContent = replyText;
+      $replyCnTextDouble.textContent = cnReplyText;
     } else {
       $replyCnText.textContent = '暂无中文对照翻译';
+      $replyTextCn.textContent = replyText;
+      $replyCnTextDouble.textContent = '暂无中文对照翻译';
     }
 
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
@@ -993,7 +999,12 @@ function updateKnowledgePreviewChunks(chunks) {
 
 // ===== Copy =====
 async function handleCopy(type) {
-  const text = type === 'cn' ? $replyCnText.textContent : $replyText.textContent;
+  let text;
+  if (type === 'cn') {
+    text = $replyCnTextDouble.textContent;
+  } else {
+    text = $replyText.textContent;
+  }
   if (!text || text === '暂无中文对照翻译' || text === '暂无英文回复建议') return;
   try {
     await navigator.clipboard.writeText(text);
