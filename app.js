@@ -83,7 +83,6 @@ const $outputAllContent = $('output-all-content');
 const $outputLoading = $('output-loading');
 const $thoughtsList = $('thoughts-list');
 const $replyText = $('reply-text');
-const $replyCnText = $('reply-cn-text');
 const $replyTextCn = $('reply-text-cn');
 const $replyCnTextDouble = $('reply-cn-text-double');
 const $chunksUsed = $('chunks-used');
@@ -598,13 +597,11 @@ async function handleGenerate() {
     // Display reply text
     $replyText.textContent = replyText;
 
-    // Display Chinese translation (stacked in section 2, side-by-side in section 3)
+    // Display Chinese translation (side-by-side in section 3)
     if (cnReplyText) {
-      $replyCnText.textContent = cnReplyText;
       $replyTextCn.textContent = replyText;
       $replyCnTextDouble.textContent = cnReplyText;
     } else {
-      $replyCnText.textContent = '暂无中文对照翻译';
       $replyTextCn.textContent = replyText;
       $replyCnTextDouble.textContent = '暂无中文对照翻译';
     }
