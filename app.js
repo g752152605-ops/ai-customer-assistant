@@ -84,7 +84,8 @@ const $outputLoading = $('output-loading');
 const $thoughtsList = $('thoughts-list');
 const $replyText = $('reply-text');
 const $replyCnText = $('reply-cn-text');
-const $btnCopy = $('btn-copy');
+const $replyText2 = $('reply-text-2');
+const $replyCnText2 = $('reply-cn-text-2');
 const $chunksUsed = $('chunks-used');
 
 // Knowledge
@@ -154,7 +155,10 @@ async function init() {
 // ===== Event Listeners =====
 function setupEventListeners() {
   $btnGenerate.addEventListener('click', handleGenerate);
-  $btnCopy.addEventListener('click', handleCopy);
+  $('btn-copy-reply').addEventListener('click', () => handleCopy('reply'));
+  $('btn-copy-cn').addEventListener('click', () => handleCopy('cn'));
+  $('btn-copy-reply2').addEventListener('click', () => handleCopy('reply'));
+  $('btn-copy-cn2').addEventListener('click', () => handleCopy('cn'));
   $btnAddCustomer.addEventListener('click', () => openCustomerModal());
   $btnEditCurrent.addEventListener('click', () => {
     if (currentCustomerId) editCustomer(currentCustomerId);
@@ -600,15 +604,17 @@ async function handleGenerate() {
       $thoughtsList.innerHTML = '<div class="thoughts-empty">暂无思路分析</div>';
     }
 
-    // Display reply text
+    // Display reply text and Chinese translation in reply tab (stacked)
     $replyText.textContent = replyText;
-
-    // Display Chinese translation
     if (cnReplyText) {
       $replyCnText.textContent = cnReplyText;
     } else {
       $replyCnText.textContent = '暂无中文对照翻译';
     }
+
+    // Also populate cn tab (reply-tab-cn) for when user switches to it
+    $replyText2.textContent = replyText;
+    $replyCnText2.textContent = cnReplyText || '暂无中文对照翻译';
 
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
     $customerMessage.value = '';
@@ -1002,9 +1008,9 @@ function updateKnowledgePreviewChunks(chunks) {
 }
 
 // ===== Copy =====
-async function handleCopy() {
-  const text = $replyText.textContent;
-  if (!text) return;
+async function handleCopy(type) {
+  const text = type === 'cn' ? $replyCnText.textContent : $replyText.textContent;
+  if (!text || text === '暂无中文对照翻译' || text === '暂无英文回复建议') return;
   try {
     await navigator.clipboard.writeText(text);
     showToast('已复制到剪贴板');

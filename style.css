@@ -977,6 +977,18 @@ body {
   border: 1px solid var(--border);
 }
 
+.reply-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reply-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+
 .output-loading {
   position: absolute;
   inset: 0;
