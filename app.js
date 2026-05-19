@@ -753,34 +753,29 @@ ${historyContext}`;
 Message type: ${typeLabels[type] || 'General Inquiry'}
 Tone: ${toneLabels[tone] || 'Professional'}
 
-Output format - you MUST follow this EXACT format:
+Output format - you MUST follow this EXACT format. Do NOT use any other format:
 
---THOUGHTS---
-[回复思路分析，用中文写，3-5个要点]
-要点包括：
-- 客户意图分析
-- 回复策略建议
-- 注意事项
---
+<<<THOUGHTS>>>
+[回复思路分析，用中文写，3-5个要点，要点包括：客户意图分析、回复策略建议、注意事项]
+<<<REPLY>>>
+[英文回复建议，使用即时聊天风格，短句，可以分段，每段1-2句话，可加emoji]
+<<<CN_REPLY>>>
+[中文对照：完整翻译上面的英文回复为自然流畅的中文，保持语气和风格]
 
---REPLY---
-[英文回复建议，使用即时聊天风格，短句，可以分段，每段1-2句话]
---
+Example output:
 
---CN-REPLY---
-[中文对照版本：完整翻译英文回复为自然流畅的中文，保持原文的语气和风格]
---
-
---REPLY---
+<<<THOUGHTS>>>
+- 客户想了解产品A的价格
+- 需要提供详细报价信息
+- 注意回复要专业
+<<<REPLY>>>
 Hi Sarah! 👋
 Got your question about pricing.
 For this product, it's $XX/piece.
 We also offer samples if you want to check quality first.
 Sound good? 😊
---
-
---CN-REPLY--
-你好 Sarah！👋
+<<<CN_REPLY>>>
+你好Sarah！👋
 收到你关于价格的咨询。
 这个产品的单价是XX美元。
 如果你想确认质量，我们也提供样品。
@@ -791,7 +786,7 @@ Sound good? 😊
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 600,
+      max_tokens: 1200,
       temperature: 0.7,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]
@@ -817,10 +812,10 @@ Sound good? 😊
 
 // ===== Parse reply with thoughts =====
 function parseReplyWithThoughts(reply) {
-  // Try to split by ---THOUGHTS--- and ---REPLY---
-  const thoughtsMatch = reply.match(/--THOUGHTS---([\s\S]*?)--REPLY---/);
-  const replyMatch = reply.match(/--REPLY---([\s\S]*?)(?=--CN-REPLY---|--REPLY---|$)/i);
-  const cnMatch = reply.match(/--CN-REPLY---([\s\S]*?)(?=--REPLY---|$)/i);
+  // Use unique delimiters that AI is unlikely to confuse
+  const thoughtsMatch = reply.match(/<<<THOUGHTS>>>([\s\S]*?)<<<REPLY>>>/);
+  const replyMatch = reply.match(/<<<REPLY>>>([\s\S]*?)<<<CN_REPLY>>>/i);
+  const cnMatch = reply.match(/<<<CN_REPLY>>>([\s\S]*?)$/i);
 
   if (thoughtsMatch && replyMatch) {
     const thoughtsText = thoughtsMatch[1].trim();
@@ -830,7 +825,6 @@ function parseReplyWithThoughts(reply) {
       .filter(line => line.length > 0);
 
     let replyText = replyMatch[1].trim();
-    replyText = replyText.replace(/--CN-REPLY---[\s\S]*$/i, '').trim();
 
     return {
       thoughts: thoughts,
@@ -839,42 +833,8 @@ function parseReplyWithThoughts(reply) {
     };
   }
 
-  // Fallback: if no clear separator found, try other patterns
-  // Check if first part looks like thoughts (mostly Chinese)
-  const lines = reply.split('\n').filter(l => l.trim());
-  const thoughts = [];
-  const replyLines = [];
-  let isThoughtsSection = true;
-
-  for (const line of lines) {
-    if (line.includes('回复思路') || line.includes('分析') || line.includes('意图') || line.includes('策略') || line.includes('注意')) {
-      isThoughtsSection = true;
-    }
-    if (line.includes('---') || line.includes('Reply') || line.includes('回复') === false && /[a-zA-Z]/.test(line)) {
-      if (thoughts.length > 0 && replyLines.length === 0) {
-        isThoughtsSection = false;
-      }
-    }
-
-    if (isThoughtsSection && !line.includes('---')) {
-      const cleanLine = line.replace(/^[-\*\d.)\s]+/, '').trim();
-      if (cleanLine && !line.includes('---')) {
-        thoughts.push(cleanLine);
-      }
-    } else if (!isThoughtsSection && !line.includes('---')) {
-      replyLines.push(line);
-    }
-  }
-
-  if (thoughts.length === 0 || replyLines.length === 0) {
-    return { thoughts: [], replyText: reply, cnReplyText: '' };
-  }
-
-  return {
-    thoughts: thoughts.slice(0, 5),
-    replyText: replyLines.join('\n'),
-    cnReplyText: ''
-  };
+  // Fallback: if no clear separator found, treat entire response as reply
+  return { thoughts: [], replyText: reply, cnReplyText: '' };
 }
 
 // ===== Clean AI-sounding phrases =====
