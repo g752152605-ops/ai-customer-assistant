@@ -78,7 +78,6 @@
       <div class="chat-area">
         <!-- Left: Input -->
         <section class="panel panel-input">
-          <div class="panel-tabs">
             <button class="tab active" data-tab="compose">撰写回复</button>
             <button class="tab" data-tab="history">对话历史</button>
           </div>
@@ -165,76 +164,114 @@
         </section>
 
         <!-- Right: Output + Copilot stacked -->
+        <div class="right-column">
         <section class="panel panel-output">
-          <!-- Top: Reply Output -->
-          <div class="output-section">
-            <div class="panel-header">
-              <h2>AI 回复建议</h2>
-              <span class="badge badge-ai">AI Draft</span>
-            </div>
-            <div class="output-area">
-              <div class="output-placeholder" id="output-placeholder">
-                <div class="placeholder-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </div>
-                <p>AI 生成的回复建议将显示在这里</p>
-                <span>选择客户 → 输入消息 → 点击「生成回复」</span>
+          <!-- Reply Output: 3 Tabs -->
+          <div class="output-tabs-bar">
+            <button class="output-tab-btn active" data-reply-tab="thoughts">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              思路分析
+            </button>
+            <button class="output-tab-btn" data-reply-tab="reply">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              回复建议
+            </button>
+            <button class="output-tab-btn" data-reply-tab="cn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              中文对照
+            </button>
+          </div>
+
+          <div class="output-area-wrapper">
+            <div class="output-placeholder" id="output-placeholder">
+              <div class="placeholder-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
               </div>
-              <div class="output-content hidden" id="output-content">
-                <div class="output-header">
-                  <div class="output-meta">
-                    <span class="meta-item" id="chunks-used">0 个知识片段</span>
-                  </div>
+              <p>AI 生成的回复建议将显示在这里</p>
+              <span>选择客户 → 输入消息 → 点击「生成回复」</span>
+            </div>
+
+            <div class="output-content-area hidden" id="output-content-area">
+              <!-- Thoughts Tab -->
+              <div class="reply-tab-content active" id="reply-tab-thoughts">
+                <div class="reply-meta-row">
+                  <span class="reply-meta-label">回复思路分析</span>
+                  <span class="reply-chunks" id="chunks-used">0 个知识片段</span>
+                </div>
+                <div class="thoughts-list" id="thoughts-list"></div>
+              </div>
+
+              <!-- Reply Tab -->
+              <div class="reply-tab-content" id="reply-tab-reply">
+                <div class="reply-meta-row">
+                  <span class="reply-meta-label">英文回复建议</span>
                   <button class="btn btn-sm btn-copy" id="btn-copy">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                     </svg>
                     复制
                   </button>
                 </div>
-                <div class="reply-thoughts" id="reply-thoughts"></div>
-                <div class="output-divider"></div>
-                <div class="output-text" id="output-text"></div>
+                <div class="reply-text" id="reply-text"></div>
+              </div>
+
+              <!-- Chinese Tab -->
+              <div class="reply-tab-content" id="reply-tab-cn">
+                <div class="reply-meta-row">
+                  <span class="reply-meta-label">中文对照翻译</span>
+                </div>
+                <div class="reply-cn-text" id="reply-cn-text"></div>
               </div>
             </div>
+
             <div class="output-loading hidden" id="output-loading">
               <div class="loading-spinner"></div>
               <p>AI 正在生成回复建议...</p>
-              <span>结合客户背调信息 + 知识库检索</span>
-            </div>
-          </div>
-
-          <!-- Divider -->
-          <div class="panel-divider">
-            <span>AI 助手</span>
-            <button class="btn btn-sm btn-ghost" id="btn-clear-copilot">清空</button>
-          </div>
-
-          <!-- Bottom: Copilot Chat -->
-          <div class="copilot-section">
-            <div class="copilot-messages" id="copilot-messages">
-              <div class="copilot-empty">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <p>向 AI 助手咨询客户策略</p>
-                <span id="copilot-customer-name">请先选择客户</span>
-              </div>
-            </div>
-            <div class="copilot-input-area">
-              <div class="copilot-input-row">
-                <input type="text" id="copilot-message" class="copilot-input" placeholder="向 AI 助手提问...">
-                <button class="btn btn-primary" id="btn-copilot-send">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
-                </button>
-              </div>
             </div>
           </div>
         </section>
+
+        <!-- Copilot Panel - full width below -->
+        <section class="panel panel-copilot">
+          <div class="copilot-header">
+            <div class="copilot-header-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>AI 助手</span>
+              <span class="copilot-customer-tag" id="copilot-customer-tag">未选择客户</span>
+            </div>
+            <button class="btn btn-sm btn-ghost" id="btn-clear-copilot">清空对话</button>
+          </div>
+          <div class="copilot-messages" id="copilot-messages">
+            <div class="copilot-empty">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <p>向 AI 助手咨询客户策略</p>
+              <span>基于当前客户的上下文提供建议</span>
+            </div>
+          </div>
+          <div class="copilot-input-area">
+            <div class="copilot-input-row">
+              <input type="text" id="copilot-message" class="copilot-input" placeholder="向 AI 助手提问...">
+              <button class="btn btn-primary" id="btn-copilot-send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
+        </div>
       </div>
     </main>
   </div>

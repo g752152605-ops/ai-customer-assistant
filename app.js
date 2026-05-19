@@ -79,10 +79,11 @@ const $productFormCancel = $('product-form-cancel');
 
 // Output
 const $outputPlaceholder = $('output-placeholder');
-const $outputContent = $('output-content');
+const $outputContentArea = $('output-content-area');
 const $outputLoading = $('output-loading');
-const $outputText = $('output-text');
-const $replyThoughts = $('reply-thoughts');
+const $thoughtsList = $('thoughts-list');
+const $replyText = $('reply-text');
+const $replyCnText = $('reply-cn-text');
 const $btnCopy = $('btn-copy');
 const $chunksUsed = $('chunks-used');
 
@@ -129,7 +130,7 @@ const $copilotMessages = $('copilot-messages');
 const $copilotMessage = $('copilot-message');
 const $btnCopilotSend = $('btn-copilot-send');
 const $btnClearCopilot = $('btn-clear-copilot');
-const $copilotCustomerName = $('copilot-customer-name');
+const $copilotCustomerTag = $('copilot-customer-tag');
 
 // ===== Init =====
 async function init() {
@@ -216,6 +217,13 @@ function setupEventListeners() {
     $btnAddSummary.disabled = !$importSummaryInput.value.trim();
   });
   $btnAddSummary.addEventListener('click', handleSummaryAdd);
+
+  // Reply tabs
+  document.querySelectorAll('.output-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchReplyTab(btn.dataset.replyTab);
+    });
+  });
 
   // Copilot
   $btnCopilotSend.addEventListener('click', handleCopilotSend);
@@ -372,7 +380,7 @@ window.selectCustomer = function(id) {
   updateCurrentCustomerDetail();
   updateConversationDisplay();
   updateKnowledgePreview();
-  updateCopilotCustomerHint();
+  updateCopilotCustomerTag();
   renderCopilotPanel();
 };
 
@@ -398,7 +406,7 @@ window.deleteCustomer = function(id) {
   renderCustomerList();
   updateCurrentCustomerDetail();
   updateConversationDisplay();
-  updateCopilotCustomerHint();
+  updateCopilotCustomerTag();
   renderCopilotPanel();
   showToast('已删除客户');
 };
@@ -468,7 +476,7 @@ function handleSaveCustomer() {
   updateConversationDisplay();
   updateCustomerForm();
   loadCopilotMessages(currentCustomerId);
-  updateCopilotCustomerHint();
+  updateCopilotCustomerTag();
   renderCopilotPanel();
   closeCustomerModal();
 }
@@ -550,7 +558,7 @@ async function handleGenerate() {
   }
 
   $outputPlaceholder.classList.add('hidden');
-  $outputContent.classList.add('hidden');
+  $outputContentArea.classList.add('hidden');
   $outputLoading.classList.remove('hidden');
   $btnGenerate.disabled = true;
 
@@ -579,30 +587,39 @@ async function handleGenerate() {
     }
 
     $outputLoading.classList.add('hidden');
-    $outputContent.classList.remove('hidden');
+    $outputPlaceholder.classList.add('hidden');
+    $outputContentArea.classList.remove('hidden');
 
     // Parse reply to extract thoughts and actual reply
     const { thoughts, replyText, cnReplyText } = parseReplyWithThoughts(reply);
 
-    // Display thoughts section
-    if (thoughts) {
-      $replyThoughts.innerHTML = `<div class="reply-thoughts-title">💡 回复思路分析</div><ul>${thoughts.map(t => `<li>${t}</li>`).join('')}</ul>`;
+    // Display thoughts
+    if (thoughts && thoughts.length > 0) {
+      $thoughtsList.innerHTML = thoughts.map(t => `<div class="thought-item"><span class="thought-bullet"></span>${escapeHtml(t)}</div>`).join('');
     } else {
-      $replyThoughts.innerHTML = '';
+      $thoughtsList.innerHTML = '<div class="thoughts-empty">暂无思路分析</div>';
     }
 
-    // Display reply text with Chinese version
+    // Display reply text
+    $replyText.textContent = replyText;
+
+    // Display Chinese translation
     if (cnReplyText) {
-      $outputText.innerHTML = `<div class="reply-en">${escapeHtml(replyText)}</div><div class="reply-cn">${escapeHtml(cnReplyText)}</div>`;
+      $replyCnText.textContent = cnReplyText;
     } else {
-      $outputText.textContent = replyText;
+      $replyCnText.textContent = '暂无中文对照翻译';
     }
+
     $chunksUsed.textContent = `${retrievedChunks.length} 个知识片段`;
     $customerMessage.value = '';
+
+    // Switch to thoughts tab by default
+    switchReplyTab('thoughts');
 
   } catch (err) {
     $outputLoading.classList.add('hidden');
     $outputPlaceholder.classList.remove('hidden');
+    $outputContentArea.classList.add('hidden');
     showToast('生成失败: ' + err.message);
     console.error(err);
   } finally {
@@ -986,7 +1003,7 @@ function updateKnowledgePreviewChunks(chunks) {
 
 // ===== Copy =====
 async function handleCopy() {
-  const text = $outputText.textContent;
+  const text = $replyText.textContent;
   if (!text) return;
   try {
     await navigator.clipboard.writeText(text);
@@ -1506,11 +1523,6 @@ function renderCopilotPanel() {
   $copilotMessages.scrollTop = $copilotMessages.scrollHeight;
 }
 
-function updateCopilotCustomerHint() {
-  const customer = getCurrentCustomer();
-  $copilotCustomerName.textContent = customer ? customer.name : '请先选择客户';
-}
-
 async function handleCopilotSend() {
   const text = $copilotMessage.value.trim();
   if (!text) return;
@@ -1682,6 +1694,20 @@ function clearCopilotChat() {
   saveCopilotMessages(currentCustomerId, copilotMessages);
   renderCopilotPanel();
   showToast('对话已清空');
+}
+
+function switchReplyTab(tabName) {
+  document.querySelectorAll('.output-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.replyTab === tabName);
+  });
+  document.querySelectorAll('.reply-tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === 'reply-tab-' + tabName);
+  });
+}
+
+function updateCopilotCustomerTag() {
+  const customer = getCurrentCustomer();
+  $copilotCustomerTag.textContent = customer ? customer.name : '未选择客户';
 }
 
 // ===== Utilities =====
