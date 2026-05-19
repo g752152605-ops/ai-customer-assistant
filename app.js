@@ -755,31 +755,31 @@ Tone: ${toneLabels[tone] || 'Professional'}
 
 Output format - you MUST follow this EXACT format:
 
----THOUGHTS---
+--THOUGHTS---
 [回复思路分析，用中文写，3-5个要点]
 要点包括：
 - 客户意图分析
 - 回复策略建议
 - 注意事项
----
+--
 
----REPLY---
+--REPLY---
 [英文回复建议，使用即时聊天风格，短句，可以分段，每段1-2句话]
----
+--
 
----CN-REPLY---
+--CN-REPLY---
 [中文对照版本：完整翻译英文回复为自然流畅的中文，保持原文的语气和风格]
----
+--
 
----REPLY---
+--REPLY---
 Hi Sarah! 👋
 Got your question about pricing.
 For this product, it's $XX/piece.
 We also offer samples if you want to check quality first.
 Sound good? 😊
----
+--
 
----CN-REPLY---
+--CN-REPLY--
 你好 Sarah！👋
 收到你关于价格的咨询。
 这个产品的单价是XX美元。
@@ -818,9 +818,9 @@ Sound good? 😊
 // ===== Parse reply with thoughts =====
 function parseReplyWithThoughts(reply) {
   // Try to split by ---THOUGHTS--- and ---REPLY---
-  const thoughtsMatch = reply.match(/---THOUGHTS---([\s\S]*?)---REPLY---/);
-  const replyMatch = reply.match(/---REPLY---([\s\S]*?)(?=---CN-REPLY---|---REPLY---|$)/i);
-  const cnMatch = reply.match(/---CN-REPLY---([\s\S]*?)(?=---REPLY---|$)/i);
+  const thoughtsMatch = reply.match(/--THOUGHTS---([\s\S]*?)--REPLY---/);
+  const replyMatch = reply.match(/--REPLY---([\s\S]*?)(?=--CN-REPLY---|--REPLY---|$)/i);
+  const cnMatch = reply.match(/--CN-REPLY---([\s\S]*?)(?=--REPLY---|$)/i);
 
   if (thoughtsMatch && replyMatch) {
     const thoughtsText = thoughtsMatch[1].trim();
@@ -830,7 +830,7 @@ function parseReplyWithThoughts(reply) {
       .filter(line => line.length > 0);
 
     let replyText = replyMatch[1].trim();
-    replyText = replyText.replace(/---CN-REPLY---[\s\S]*$/i, '').trim();
+    replyText = replyText.replace(/--CN-REPLY---[\s\S]*$/i, '').trim();
 
     return {
       thoughts: thoughts,
