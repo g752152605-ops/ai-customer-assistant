@@ -163,6 +163,7 @@ async function init() {
   await loadKnowledgeBase();
   loadCustomers();
   loadProducts();
+  loadTranslateHistory();
   updateProductSelect();
   setupEventListeners();
   renderCustomerList();
@@ -257,6 +258,20 @@ function setupEventListeners() {
   $translateInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) handleTranslate();
   });
+
+  // Quick phrases
+  document.querySelectorAll('.quick-phrase').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const phrase = btn.dataset.phrase;
+      const current = $translateInput.value;
+      $translateInput.value = current ? current + '\n' + phrase : phrase;
+      $translateInput.dispatchEvent(new Event('input'));
+      $translateInput.focus();
+    });
+  });
+
+  // Translate history clear
+  $('btn-clear-translate-history').addEventListener('click', clearTranslateHistory);
 }
 
 // ===== Customer Management =====
@@ -493,37 +508,68 @@ function handleSaveCustomer() {
 
 function updateCurrentCustomerDetail() {
   const c = getCurrentCustomer();
+
+  // Update sidebar customer detail
   if (!c) {
     $currentCustomerDetail.classList.remove('visible');
-    return;
-  }
-
-  $currentCustomerDetail.classList.add('visible');
-  $currentCustomerName.textContent = c.name;
-
-  if (c.level) {
-    $currentCustomerLevel.textContent = c.level;
-    $currentCustomerLevel.className = `current-customer-level customer-level level-${c.level}`;
   } else {
-    $currentCustomerLevel.textContent = '未评级';
-    $currentCustomerLevel.className = 'current-customer-level';
+    $currentCustomerDetail.classList.add('visible');
+    $currentCustomerName.textContent = c.name;
+
+    if (c.level) {
+      $currentCustomerLevel.textContent = c.level;
+      $currentCustomerLevel.className = `current-customer-level customer-level level-${c.level}`;
+    } else {
+      $currentCustomerLevel.textContent = '未评级';
+      $currentCustomerLevel.className = 'current-customer-level';
+    }
+
+    const typeLabels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
+    const ninetyDayParts = [];
+    if (c.backgroundCheck?.prodViewCount) ninetyDayParts.push(`浏览${c.backgroundCheck.prodViewCount}次`);
+    if (c.backgroundCheck?.validInquiry) ninetyDayParts.push(`询盘${c.backgroundCheck.validInquiry}次`);
+    if (c.backgroundCheck?.loginDays) ninetyDayParts.push(`登录${c.backgroundCheck.loginDays}天`);
+
+    const parts = [
+      c.company && `公司: ${c.company}`,
+      c.type && `类型: ${typeLabels[c.type] || c.type}`,
+      c.region && `地区: ${c.region}`,
+      c.backgroundCheck?.creditRating && `信用: ${c.backgroundCheck.creditRating}`,
+      ninetyDayParts.length > 0 && `近90天: ${ninetyDayParts.join(', ')}`
+    ].filter(Boolean);
+
+    $currentCustomerInfo.textContent = parts.join(' | ') || '暂无详细信息';
   }
 
-  const typeLabels = { wholesaler: '批发商', factory: '工厂', trader: '贸易商', distributor: '经销商', agent: '代理商', other: '其他' };
-  const ninetyDayParts = [];
-  if (c.backgroundCheck?.prodViewCount) ninetyDayParts.push(`浏览${c.backgroundCheck.prodViewCount}次`);
-  if (c.backgroundCheck?.validInquiry) ninetyDayParts.push(`询盘${c.backgroundCheck.validInquiry}次`);
-  if (c.backgroundCheck?.loginDays) ninetyDayParts.push(`登录${c.backgroundCheck.loginDays}天`);
+  // Update customer info card
+  const $customerInfoCard = $('customer-info-card');
+  const $customerInfoAvatar = $('customer-info-avatar');
+  const $customerInfoName = $('customer-info-name');
+  const $customerInfoMeta = $('customer-info-meta');
+  const $customerInfoLevel = $('customer-info-level');
+  const $statOrders = $('stat-orders');
+  const $statCredit = $('stat-credit');
+  const $statRegion = $('stat-region');
 
-  const parts = [
-    c.company && `公司: ${c.company}`,
-    c.type && `类型: ${typeLabels[c.type] || c.type}`,
-    c.region && `地区: ${c.region}`,
-    c.backgroundCheck?.creditRating && `信用: ${c.backgroundCheck.creditRating}`,
-    ninetyDayParts.length > 0 && `近90天: ${ninetyDayParts.join(', ')}`
-  ].filter(Boolean);
-
-  $currentCustomerInfo.textContent = parts.join(' | ') || '暂无详细信息';
+  if (!c) {
+    $customerInfoAvatar.textContent = '?';
+    $customerInfoName.textContent = '未选择客户';
+    $customerInfoMeta.textContent = '请从左侧选择客户';
+    $customerInfoLevel.textContent = '';
+    $customerInfoLevel.className = 'customer-info-level';
+    $statOrders.textContent = '-';
+    $statCredit.textContent = '-';
+    $statRegion.textContent = '-';
+  } else {
+    $customerInfoAvatar.textContent = c.name.charAt(0).toUpperCase();
+    $customerInfoName.textContent = c.name;
+    $customerInfoMeta.textContent = c.company || '未知公司';
+    $customerInfoLevel.textContent = c.level || '未评级';
+    $customerInfoLevel.className = `customer-info-level level-${c.level || 'none'}`;
+    $statOrders.textContent = c.backgroundCheck?.orderHistory ? '有' : '无';
+    $statCredit.textContent = c.backgroundCheck?.creditRating || '未评级';
+    $statRegion.textContent = c.region || '-';
+  }
 }
 
 // ===== Conversation Display =====
@@ -985,6 +1031,58 @@ async function handleCopy(type) {
 }
 
 // ===== Translate =====
+let translateHistory = [];
+
+function loadTranslateHistory() {
+  try {
+    const stored = localStorage.getItem('ai-translate-history');
+    translateHistory = stored ? JSON.parse(stored) : [];
+  } catch {
+    translateHistory = [];
+  }
+  renderTranslateHistory();
+}
+
+function saveTranslateHistory() {
+  try {
+    localStorage.setItem('ai-translate-history', JSON.stringify(translateHistory));
+  } catch (e) {
+    console.warn('Failed to save translate history:', e);
+  }
+}
+
+function renderTranslateHistory() {
+  const $historyList = $('translate-history-list');
+  if (translateHistory.length === 0) {
+    $historyList.innerHTML = '<div class="translate-history-empty">暂无翻译历史</div>';
+    return;
+  }
+
+  $historyList.innerHTML = translateHistory.slice(0, 10).map((item, idx) => `
+    <div class="translate-history-item" onclick="useTranslateHistory(${idx})">
+      <div class="translate-history-cn">${escapeHtml(item.cn.substring(0, 50))}${item.cn.length > 50 ? '...' : ''}</div>
+      <div class="translate-history-en">${escapeHtml(item.en.substring(0, 50))}${item.en.length > 50 ? '...' : ''}</div>
+    </div>
+  `).join('');
+}
+
+window.useTranslateHistory = function(idx) {
+  const item = translateHistory[idx];
+  if (item) {
+    $translateInput.value = item.cn;
+    $translateInput.dispatchEvent(new Event('input'));
+    $translateStyle.value = item.style;
+    handleTranslate();
+  }
+};
+
+function clearTranslateHistory() {
+  translateHistory = [];
+  saveTranslateHistory();
+  renderTranslateHistory();
+  showToast('翻译历史已清空');
+}
+
 async function handleTranslate() {
   const input = $translateInput.value.trim();
   if (!input) {
@@ -1016,6 +1114,12 @@ async function handleTranslate() {
     };
     $translateStyleTag.textContent = styleLabels[style] || style;
     $translateResult.textContent = result;
+
+    // Save to history
+    translateHistory.unshift({ cn: input, en: result, style: style, time: Date.now() });
+    if (translateHistory.length > 20) translateHistory = translateHistory.slice(0, 20);
+    saveTranslateHistory();
+    renderTranslateHistory();
 
   } catch (err) {
     $translateLoading.classList.add('hidden');
