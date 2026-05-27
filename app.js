@@ -131,6 +131,42 @@ const $btnCopilotSend = $('btn-copilot-send');
 const $btnClearCopilot = $('btn-clear-copilot');
 const $copilotCustomerTag = $('copilot-customer-tag');
 
+// Translate
+const $translatePanel = $('translate-panel');
+const $replyPanel = $('reply-panel');
+const $translateStyle = $('translate-style');
+const $translateInput = $('translate-input');
+const $translateCharCount = $('translate-char-count');
+const $btnTranslate = $('btn-translate');
+const $btnClearTranslateInput = $('btn-clear-translate-input');
+const $btnCopyTranslation = $('btn-copy-translation');
+const $translateOutputPlaceholder = $('translate-output-placeholder');
+const $translateOutputContent = $('translate-output-content');
+const $translateLoading = $('translate-loading');
+const $translateResult = $('translate-result');
+const $translateStyleTag = $('translate-style-tag');
+
+// ===== Mode Switching =====
+let currentMode = 'reply';
+
+function switchMode(mode) {
+  currentMode = mode;
+
+  // Update tab states
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.mode === mode);
+  });
+
+  // Toggle panels
+  if (mode === 'reply') {
+    $replyPanel.classList.remove('hidden');
+    $translatePanel.classList.remove('active');
+  } else {
+    $replyPanel.classList.add('hidden');
+    $translatePanel.classList.add('active');
+  }
+}
+
 // ===== Init =====
 async function init() {
   await loadKnowledgeBase();
@@ -152,6 +188,11 @@ async function init() {
 
 // ===== Event Listeners =====
 function setupEventListeners() {
+  // Mode switching
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+  });
+
   $btnGenerate.addEventListener('click', handleGenerate);
   $('btn-copy-reply').addEventListener('click', () => handleCopy('reply'));
   $btnAddCustomer.addEventListener('click', () => openCustomerModal());
@@ -226,6 +267,21 @@ function setupEventListeners() {
     }
   });
   $btnClearCopilot.addEventListener('click', clearCopilotChat);
+
+  // Translate
+  $translateInput.addEventListener('input', () => {
+    const len = $translateInput.value.length;
+    $translateCharCount.textContent = len + ' 字';
+  });
+  $btnTranslate.addEventListener('click', handleTranslate);
+  $btnClearTranslateInput.addEventListener('click', () => {
+    $translateInput.value = '';
+    $translateCharCount.textContent = '0 字';
+  });
+  $btnCopyTranslation.addEventListener('click', handleCopyTranslation);
+  $translateInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) handleTranslate();
+  });
 }
 
 // ===== Customer Management =====
@@ -958,6 +1014,134 @@ async function handleCopy(type) {
     text = $replyTextCn.textContent;
   }
   if (!text || text === '暂无中文对照翻译' || text === '暂无英文回复建议' || text === '暂无回复建议') return;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('已复制到剪贴板');
+  } catch {
+    showToast('复制失败，请手动选择复制');
+  }
+}
+
+// ===== Translate =====
+async function handleTranslate() {
+  const input = $translateInput.value.trim();
+  if (!input) {
+    showToast('请输入需要翻译的中文内容');
+    $translateInput.focus();
+    return;
+  }
+
+  $translateOutputPlaceholder.classList.add('hidden');
+  $translateOutputContent.classList.add('hidden');
+  $translateLoading.classList.remove('hidden');
+  $btnTranslate.disabled = true;
+
+  try {
+    const style = $translateStyle.value;
+    const result = await translateText(input, style);
+
+    $translateLoading.classList.add('hidden');
+    $translateOutputPlaceholder.classList.add('hidden');
+    $translateOutputContent.classList.remove('hidden');
+
+    // Set style tag
+    const styleLabels = {
+      formal: '正式商务 Formal Business',
+      casual: '外贸口语 Trade Casual',
+      simple: '简单明了 Simple Clear',
+      friendly: '友好亲切 Friendly Warm',
+      technical: '技术文档 Technical'
+    };
+    $translateStyleTag.textContent = styleLabels[style] || style;
+    $translateResult.textContent = result;
+
+  } catch (err) {
+    $translateLoading.classList.add('hidden');
+    $translateOutputPlaceholder.classList.remove('hidden');
+    $translateOutputContent.classList.add('hidden');
+    showToast('翻译失败: ' + err.message);
+    console.error(err);
+  } finally {
+    $btnTranslate.disabled = false;
+  }
+}
+
+async function translateText(text, style) {
+  const styleConfigs = {
+    formal: {
+      desc: '正式商务英文，语法严谨，用词精准，适合正式邮件和文件',
+      examples: '正式报价、合同条款、技术规格说明'
+    },
+    casual: {
+      desc: '外贸口语风格，轻松友好，简洁实用，适合WhatsApp/WeChat沟通',
+      examples: '日常询盘、快速回复、简单交流'
+    },
+    simple: {
+      desc: '简单明了，直截了当，易于理解，适合快速沟通',
+      examples: '简单问答、确认信息、清晰指示'
+    },
+    friendly: {
+      desc: '友好亲切，温暖热情，建立关系，适合新客户开发',
+      examples: '初次联系、友好问候、客户关怀'
+    },
+    technical: {
+      desc: '技术文档风格，精确专业，适合产品规格说明',
+      examples: '技术参数、产品描述、工艺说明'
+    }
+  };
+
+  const config = styleConfigs[style] || styleConfigs.formal;
+
+  const systemPrompt = `You are a professional Chinese-to-English translator specializing in B2B international trade.
+
+Your task: Translate the Chinese text below into natural, professional English.
+
+Style requirement: ${config.desc}
+Good for: ${config.examples}
+
+Important rules:
+- Keep the same tone and style as specified
+- Use appropriate business English vocabulary
+- Maintain the original meaning accurately
+- For trade/casual style, you may use common chat abbreviations (ASAP, BTW, FYI, etc.)
+- For formal style, use proper business English conventions
+- Do NOT add explanations or notes - ONLY provide the translation
+- Do NOT use AI-sounding phrases or generic openings
+- Keep it natural and contextually appropriate`;
+
+  const userPrompt = `Translate the following Chinese text to English:\n\n${text}`;
+
+  const response = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1500,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  let textContent = Array.isArray(data.content)
+    ? data.content.find(c => c.type === 'text')?.text || ''
+    : data.content?.[0]?.text || '';
+
+  // Clean up the translation
+  textContent = cleanAIPhrases(textContent);
+
+  return textContent || '翻译结果为空，请稍后重试。';
+}
+
+async function handleCopyTranslation() {
+  const text = $translateResult.textContent;
+  if (!text || text === '翻译结果为空，请稍后重试。') return;
   try {
     await navigator.clipboard.writeText(text);
     showToast('已复制到剪贴板');

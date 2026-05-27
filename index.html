@@ -64,6 +64,21 @@
           <h1 class="main-title">海尚鸣辉询盘回复辅助系统</h1>
           <span class="header-subtitle">V1.0 · Powered by MiniMax</span>
         </div>
+        <!-- Function Mode Tabs -->
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="reply">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            AI回复
+          </button>
+          <button class="mode-tab" data-mode="translate">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+            </svg>
+            AI翻译
+          </button>
+        </div>
         <div class="content-header-actions">
           <button class="btn btn-ghost" id="btn-knowledge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,8 +89,101 @@
         </div>
       </header>
 
-      <!-- Chat Area -->
-      <div class="chat-area">
+      <!-- AI Translate Panel (hidden by default) -->
+      <section class="translate-panel" id="translate-panel">
+        <div class="translate-header">
+          <div class="translate-header-left">
+            <div class="translate-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+              </svg>
+              <span>中译英翻译</span>
+            </div>
+            <p class="translate-desc">选择翻译风格，输入中文内容，AI为您生成专业英文翻译</p>
+          </div>
+          <div class="translate-header-actions">
+            <select id="translate-style" class="select translate-style-select">
+              <option value="formal">正式商务 Formal Business</option>
+              <option value="casual">外贸口语 Trade Casual</option>
+              <option value="simple">简单明了 Simple Clear</option>
+              <option value="friendly">友好亲切 Friendly Warm</option>
+              <option value="technical">技术文档 Technical</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="translate-content">
+          <!-- Left: Chinese Input -->
+          <div class="translate-input-col">
+            <div class="translate-col-header">
+              <span class="translate-col-label">中文原文</span>
+              <button class="btn btn-sm btn-ghost" id="btn-clear-translate-input">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                清空
+              </button>
+            </div>
+            <textarea id="translate-input" class="translate-textarea" placeholder="请输入需要翻译的中文内容...
+
+例如：
+您好，感谢您的询盘。我们是专业玻璃制品制造商，可以为您提供高品质的水杯、酒杯等产品。请问您对我们的哪款产品感兴趣？"></textarea>
+            <div class="translate-input-footer">
+              <span class="translate-char-count" id="translate-char-count">0 字</span>
+              <button class="btn btn-primary" id="btn-translate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                开始翻译
+              </button>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="translate-divider">
+            <div class="translate-divider-line"></div>
+            <div class="translate-divider-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+            <div class="translate-divider-line"></div>
+          </div>
+
+          <!-- Right: English Output -->
+          <div class="translate-output-col">
+            <div class="translate-col-header">
+              <span class="translate-col-label">英文译文</span>
+              <button class="btn btn-sm btn-copy" id="btn-copy-translation">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                复制英文
+              </button>
+            </div>
+            <div class="translate-output-area" id="translate-output-area">
+              <div class="translate-output-placeholder" id="translate-output-placeholder">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
+                  <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04z"/>
+                </svg>
+                <p>翻译结果将显示在这里</p>
+                <span>输入中文 → 选择风格 → 点击翻译</span>
+              </div>
+              <div class="translate-output-content hidden" id="translate-output-content">
+                <div class="translate-style-tag" id="translate-style-tag"></div>
+                <div class="translate-result" id="translate-result"></div>
+              </div>
+              <div class="translate-loading hidden" id="translate-loading">
+                <div class="loading-spinner"></div>
+                <p>AI 正在翻译...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reply Panel (hidden when in translate mode) -->
+      <div class="reply-panel" id="reply-panel">
         <!-- Left: Input -->
         <section class="panel panel-input">
           <div class="panel-tabs">
@@ -264,6 +372,7 @@
           </section>
         </div>
       </div>
+      </div><!-- close reply-panel -->
     </main>
   </div>
 
