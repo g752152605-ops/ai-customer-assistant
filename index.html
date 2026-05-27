@@ -272,105 +272,70 @@
           </div>
         </section>
 
-        <!-- Right: Output + Copilot stacked -->
-        <div class="right-column">
-          <section class="panel panel-output">
-            <div class="output-area-wrapper">
-              <div class="output-placeholder" id="output-placeholder">
-                <div class="placeholder-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </div>
-                <p>AI 生成的回复建议将显示在这里</p>
-                <span>选择客户 → 输入消息 → 点击「生成回复」</span>
-              </div>
-
-              <div class="output-all-content hidden" id="output-all-content">
-                <!-- Section 1: Thoughts -->
-                <div class="output-section" id="output-section-thoughts">
-                  <div class="output-section-header">
-                    <span class="output-section-label">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                      思路分析
-                    </span>
-                    <span class="reply-chunks" id="chunks-used">0 个知识片段</span>
-                  </div>
-                  <div class="thoughts-list" id="thoughts-list"></div>
-                </div>
-
-
-                <!-- Section 3: Chinese side-by-side -->
-                <div class="output-section" id="output-section-cn">
-                  <div class="output-section-header">
-                    <span class="output-section-label">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                      </svg>
-                      回复建议
-                    </span>
-                    <button class="btn btn-sm btn-copy" id="btn-copy-reply" data-copy="reply">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                      复制英文
-                    </button>
-                  </div>
-                  <div class="cn-compare">
-                    <div class="cn-compare-col cn-compare-en">
-                      <div class="cn-col-label">英文</div>
-                      <div class="reply-text-double" id="reply-text-cn"></div>
-                    </div>
-                    <div class="cn-compare-divider"></div>
-                    <div class="cn-compare-col cn-compare-cn">
-                      <div class="cn-col-label">中文</div>
-                      <div class="reply-cn-text-double" id="reply-cn-text-double"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="output-loading hidden" id="output-loading">
-                <div class="loading-spinner"></div>
-                <p>AI 正在生成回复建议...</p>
-              </div>
-            </div>
-          </section>
-
-          <section class="panel panel-copilot">
-            <div class="copilot-header">
-              <div class="copilot-header-left">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- Right: Reply Output -->
+        <section class="panel panel-output">
+          <div class="output-area-wrapper">
+            <div class="output-placeholder" id="output-placeholder">
+              <div class="placeholder-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
-                <span>AI 助手</span>
-                <span class="copilot-customer-tag" id="copilot-customer-tag">未选择客户</span>
               </div>
-              <button class="btn btn-sm btn-ghost" id="btn-clear-copilot">清空对话</button>
+              <p>AI 生成的回复建议将显示在这里</p>
+              <span>选择客户 → 输入消息 → 点击「生成回复」</span>
             </div>
-            <div class="copilot-messages" id="copilot-messages">
-              <div class="copilot-empty">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <p>向 AI 助手咨询客户策略</p>
-                <span>基于当前客户的上下文提供建议</span>
+
+            <div class="output-all-content hidden" id="output-all-content">
+              <!-- Section 1: Thoughts -->
+              <div class="output-section" id="output-section-thoughts">
+                <div class="output-section-header">
+                  <span class="output-section-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    思路分析
+                  </span>
+                  <span class="reply-chunks" id="chunks-used">0 个知识片段</span>
+                </div>
+                <div class="thoughts-list" id="thoughts-list"></div>
+              </div>
+
+              <!-- Section 2: Reply Suggestions -->
+              <div class="output-section" id="output-section-cn">
+                <div class="output-section-header">
+                  <span class="output-section-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    回复建议
+                  </span>
+                  <button class="btn btn-sm btn-copy" id="btn-copy-reply" data-copy="reply">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    复制英文
+                  </button>
+                </div>
+                <div class="cn-compare">
+                  <div class="cn-compare-col cn-compare-en">
+                    <div class="cn-col-label">英文</div>
+                    <div class="reply-text-double" id="reply-text-cn"></div>
+                  </div>
+                  <div class="cn-compare-divider"></div>
+                  <div class="cn-compare-col cn-compare-cn">
+                    <div class="cn-col-label">中文</div>
+                    <div class="reply-cn-text-double" id="reply-cn-text-double"></div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="copilot-input-area">
-              <div class="copilot-input-row">
-                <input type="text" id="copilot-message" class="copilot-input" placeholder="向 AI 助手提问...">
-                <button class="btn btn-primary" id="btn-copilot-send">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
-                </button>
-              </div>
+
+            <div class="output-loading hidden" id="output-loading">
+              <div class="loading-spinner"></div>
+              <p>AI 正在生成回复建议...</p>
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
       </div><!-- close reply-panel -->
     </main>

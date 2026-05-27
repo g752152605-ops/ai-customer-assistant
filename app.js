@@ -14,8 +14,6 @@ let customers = [];
 let products = [];
 let currentCustomerId = null;
 let currentProductId = null;
-let copilotMessages = []; // { role: 'user'|'assistant', content: string, timestamp }
-
 // ===== DOM Elements =====
 const $ = (id) => document.getElementById(id);
 
@@ -124,13 +122,6 @@ const $importSummaryInput = $('import-summary-input');
 const $btnAddSummary = $('btn-add-summary');
 const $btnImportHistory = $('btn-import-history');
 
-// Copilot
-const $copilotMessages = $('copilot-messages');
-const $copilotMessage = $('copilot-message');
-const $btnCopilotSend = $('btn-copilot-send');
-const $btnClearCopilot = $('btn-clear-copilot');
-const $copilotCustomerTag = $('copilot-customer-tag');
-
 // Translate
 const $translatePanel = $('translate-panel');
 const $replyPanel = $('reply-panel');
@@ -178,12 +169,6 @@ async function init() {
   updateKnowledgeStats();
   updateKnowledgePreview();
   updateCurrentCustomerDetail();
-  if (currentCustomerId) {
-    loadCopilotMessages(currentCustomerId);
-    renderCopilotPanel();
-  } else {
-    renderCopilotPanel();
-  }
 }
 
 // ===== Event Listeners =====
@@ -257,16 +242,6 @@ function setupEventListeners() {
     $btnAddSummary.disabled = !$importSummaryInput.value.trim();
   });
   $btnAddSummary.addEventListener('click', handleSummaryAdd);
-
-  // Copilot
-  $btnCopilotSend.addEventListener('click', handleCopilotSend);
-  $copilotMessage.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleCopilotSend();
-    }
-  });
-  $btnClearCopilot.addEventListener('click', clearCopilotChat);
 
   // Translate
   $translateInput.addEventListener('input', () => {
@@ -423,13 +398,10 @@ function handleCustomerSearch() {
 
 window.selectCustomer = function(id) {
   currentCustomerId = id;
-  loadCopilotMessages(id);
   renderCustomerList($customerSearch.value.trim());
   updateCurrentCustomerDetail();
   updateConversationDisplay();
   updateKnowledgePreview();
-  updateCopilotCustomerTag();
-  renderCopilotPanel();
 };
 
 window.editCustomer = function(id) {
@@ -444,18 +416,11 @@ window.deleteCustomer = function(id) {
   customers = customers.filter(c => c.id !== id);
   if (currentCustomerId === id) {
     currentCustomerId = customers[0]?.id || null;
-    if (currentCustomerId) {
-      loadCopilotMessages(currentCustomerId);
-    } else {
-      copilotMessages = [];
-    }
   }
   saveCustomers();
   renderCustomerList();
   updateCurrentCustomerDetail();
   updateConversationDisplay();
-  updateCopilotCustomerTag();
-  renderCopilotPanel();
   showToast('已删除客户');
 };
 
@@ -523,9 +488,6 @@ function handleSaveCustomer() {
   updateCurrentCustomerDetail();
   updateConversationDisplay();
   updateCustomerForm();
-  loadCopilotMessages(currentCustomerId);
-  updateCopilotCustomerTag();
-  renderCopilotPanel();
   closeCustomerModal();
 }
 
@@ -1596,246 +1558,6 @@ function handleSummaryAdd() {
   $importSummaryInput.value = '';
   $btnAddSummary.disabled = true;
   closeImportModal();
-}
-
-// ===== Copilot Functions =====
-function loadCopilotMessages(customerId) {
-  if (!customerId) {
-    copilotMessages = [];
-    return;
-  }
-  try {
-    const stored = localStorage.getItem('ai-copilot-' + customerId);
-    copilotMessages = stored ? JSON.parse(stored) : [];
-  } catch {
-    copilotMessages = [];
-  }
-}
-
-function saveCopilotMessages(customerId, messages) {
-  if (!customerId) return;
-  try {
-    localStorage.setItem('ai-copilot-' + customerId, JSON.stringify(messages));
-  } catch (e) {
-    console.warn('Failed to save copilot messages:', e);
-  }
-}
-
-function renderCopilotPanel() {
-  const customer = getCurrentCustomer();
-  const customerName = customer ? escapeHtml(customer.name) : null;
-
-  if (!customer) {
-    $copilotMessages.innerHTML = `
-      <div class="copilot-empty">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        <p>向 AI 助手咨询客户策略</p>
-        <span>请先选择客户</span>
-      </div>`;
-    return;
-  }
-
-  if (copilotMessages.length === 0) {
-    $copilotMessages.innerHTML = `
-      <div class="copilot-empty">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        <p>向 AI 助手咨询客户策略</p>
-        <span>当前客户：${customerName}</span>
-      </div>`;
-    return;
-  }
-
-  $copilotMessages.innerHTML = copilotMessages.map(msg => `
-    <div class="copilot-msg ${msg.role}">
-      <div class="copilot-msg-role">${msg.role === 'user' ? '你' : 'AI 助手'}</div>
-      <div class="copilot-msg-bubble">${escapeHtml(msg.content)}</div>
-      <div class="copilot-msg-time">${new Date(msg.timestamp).toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
-    </div>
-  `).join('');
-
-  $copilotMessages.scrollTop = $copilotMessages.scrollHeight;
-}
-
-async function handleCopilotSend() {
-  const text = $copilotMessage.value.trim();
-  if (!text) return;
-
-  if (!currentCustomerId) {
-    showToast('请先选择客户');
-    return;
-  }
-
-  const customer = getCurrentCustomer();
-
-  // Add user message
-  copilotMessages.push({
-    role: 'user',
-    content: text,
-    timestamp: new Date().toISOString()
-  });
-  saveCopilotMessages(currentCustomerId, copilotMessages);
-  $copilotMessage.value = '';
-  renderCopilotPanel();
-
-  // Show loading
-  const loadingEl = document.createElement('div');
-  loadingEl.className = 'copilot-loading';
-  loadingEl.innerHTML = '<div class="loading-spinner"></div><span>AI 正在思考...</span>';
-  $copilotMessages.appendChild(loadingEl);
-  $copilotMessages.scrollTop = $copilotMessages.scrollHeight;
-
-  try {
-    const reply = await generateCopilotReply(customer, copilotMessages);
-
-    // Remove loading
-    loadingEl.remove();
-
-    // Add assistant message
-    copilotMessages.push({
-      role: 'assistant',
-      content: reply,
-      timestamp: new Date().toISOString()
-    });
-    saveCopilotMessages(currentCustomerId, copilotMessages);
-    renderCopilotPanel();
-  } catch (err) {
-    loadingEl.remove();
-    showToast('AI 助手回复失败: ' + err.message);
-    console.error(err);
-  }
-}
-
-function buildCopilotContext(customer) {
-  const currentProduct = getCurrentProduct();
-
-  const typeLabelMap = { wholesaler: 'Wholesaler (批发商)', factory: 'Factory (工厂)', trader: 'Trader (贸易商)', distributor: 'Distributor (经销商)', agent: 'Agent (代理商)', other: 'Other (其他)' };
-
-  let productContext = '';
-  if (currentProduct) {
-    productContext = `Product Being Discussed:
-- Title: ${currentProduct.title}
-- Price: ${currentProduct.price || 'TBD'}
-- Material: ${currentProduct.material || 'TBD'}
-- Cup Type: ${currentProduct.cupType || 'TBD'}
-- Description: ${currentProduct.description || 'None'}`;
-  }
-
-  let customerContext = '';
-  if (customer) {
-    const ninetyDayActivity = [];
-    if (customer.backgroundCheck?.prodViewCount) ninetyDayActivity.push(`产品浏览: ${customer.backgroundCheck.prodViewCount}次`);
-    if (customer.backgroundCheck?.validInquiry) ninetyDayActivity.push(`有效询盘: ${customer.backgroundCheck.validInquiry}次`);
-    if (customer.backgroundCheck?.loginDays) ninetyDayActivity.push(`登陆: ${customer.backgroundCheck.loginDays}天`);
-
-    customerContext = `Customer: ${customer.name}
-Company: ${customer.company || 'Unknown'}
-Level: ${customer.level || 'Unrated'} ${customer.level ? getLevelStrategy(customer.level) : ''}
-Type: ${typeLabelMap[customer.type] || customer.type || 'Unknown'}
-Buyer Characteristic: ${customer.platform || 'Unknown'} (${customer.source || 'Unknown industry'})
-Region: ${customer.region || 'Unknown'}
-Position: ${customer.position || 'Unknown'}
-Order History: ${customer.backgroundCheck?.orderHistory || 'No prior orders'}
-Payment Records: ${customer.backgroundCheck?.paymentRecords || 'Unknown'}
-Credit Rating: ${customer.backgroundCheck?.creditRating || 'Unrated'}
-90-Day Activity: ${ninetyDayActivity.length > 0 ? ninetyDayActivity.join(', ') : 'No recent activity'}
-Notes: ${customer.backgroundCheck?.otherNotes || 'None'}`;
-  }
-
-  let summaryContext = '';
-  let historyContext = '';
-
-  if (customer?.conversations?.length > 0) {
-    const summaries = customer.conversations.filter(c => c.role === 'summary');
-    const regularHistory = customer.conversations.filter(c => c.role !== 'summary').slice(-6);
-
-    if (summaries.length > 0) {
-      summaryContext = summaries.map(s => s.content).join('\n\n');
-    }
-
-    if (regularHistory.length > 0) {
-      historyContext = regularHistory.map(c =>
-        `${c.role === 'user' ? 'Customer' : 'Employee'}: ${c.content}`
-      ).join('\n');
-    }
-  }
-
-  const systemPrompt = `你是海尚鸣辉的 AI 销售顾问助手。你正在帮助员工处理客户 ${customer?.name || 'Unknown'} 的询盘。
-
-【重要】你只能使用以下客户的信息，不要混合其他客户的数据：
-
-客户信息：
-${customerContext || '无客户信息'}
-
-当前讨论的产品：
-${productContext || '未指定产品'}
-
-对话历史摘要：
-${summaryContext || '无'}
-
-最近对话：
-${historyContext || '无'}
-
-你的职责：
-1. 分析客户意图和需求
-2. 提供沟通策略建议
-3. 帮助优化回复内容
-4. 解答产品、订单、付款等问题
-5. 讨论不同文化的商务礼仪
-
-回复风格：专业、简洁、有洞察力，使用中文。`;
-
-  return { systemPrompt };
-}
-
-async function generateCopilotReply(customer, historyMessages) {
-  const { systemPrompt } = buildCopilotContext(customer);
-
-  const messages = historyMessages.map(m => ({
-    role: m.role,
-    content: m.content
-  }));
-
-  const response = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 800,
-      temperature: 0.7,
-      system: systemPrompt,
-      messages: messages
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  let textContent = Array.isArray(data.content)
-    ? data.content.find(c => c.type === 'text')?.text || ''
-    : data.content?.[0]?.text || '';
-
-  return textContent || '抱歉，AI 助手暂时无法回复，请稍后重试。';
-}
-
-function clearCopilotChat() {
-  if (!currentCustomerId) return;
-  if (!confirm('确定清空与 AI 助手的对话记录？')) return;
-  copilotMessages = [];
-  saveCopilotMessages(currentCustomerId, copilotMessages);
-  renderCopilotPanel();
-  showToast('对话已清空');
-}
-
-function updateCopilotCustomerTag() {
-  const customer = getCurrentCustomer();
-  $copilotCustomerTag.textContent = customer ? customer.name : '未选择客户';
 }
 
 // ===== Utilities =====
